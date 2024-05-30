@@ -308,7 +308,7 @@ class ShaderPass:
                 self._channel_2,
                 self._channel_3,
             ]:
-                bind_group_layouts.append(channel._bind_group_layout)
+                bind_group_layouts.append(channel.bind_group_layout)
 
             self._render_pipeline = device.create_render_pipeline(
                 layout=device.create_pipeline_layout(

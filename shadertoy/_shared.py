@@ -54,3 +54,21 @@ def get_uniform_input_layout():
         )
         _gpu_cache["uniform_input_layout"] = layout
     return layout
+
+def get_sampler(filter="linear", wrap="repeat"):
+    assert filter in ["nearest", "linear"]
+    assert wrap in ["repeat", "clamp"]
+    sampler = _gpu_cache.get("sampler_" + filter + "_" + wrap, None)
+    if sampler is None:
+        device = get_device()
+        wrap = "repeat" if wrap == "repeat" else "clamp-to-edge"
+        sampler = device.create_sampler(
+            mag_filter=filter,
+            min_filter=filter,
+            mipmap_filter=filter,
+            address_mode_u=wrap,
+            address_mode_v=wrap,
+            address_mode_w=wrap,
+        )
+        _gpu_cache["sampler_" + filter + "_" + wrap] = sampler
+    return sampler
