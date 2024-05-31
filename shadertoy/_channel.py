@@ -1,6 +1,7 @@
 import wgpu
 import numpy as np
 from ._shared import get_device, get_channel_layout, get_sampler
+from ._mipmaputil import get_mip_level_count, generate_mipmaps
 
 class ShadertoyChannel:
     def __init__(self, resource, filter="linear", wrap="repeat") -> None:
@@ -49,7 +50,10 @@ class ShadertoyChannel:
     @property
     def sampler(self):
         if self._sampler is None:
-            self._sampler = get_sampler(self.filter, self.wrap)
+            filter = self.filter
+            if filter == "mipmap":
+                filter = "linear"
+            self._sampler = get_sampler(filter, self.wrap)
             self._bind_group = None
 
         return self._sampler
@@ -64,10 +68,17 @@ class ShadertoyChannel:
     @property
     def bind_group(self):
         if self._bind_group is None:
+            if self.filter == "mipmap":
+                texture_view = self._texture.create_view()
+            else:
+                texture_view = self._texture.create_view(
+                    base_mip_level=0,
+                    mip_level_count=1
+                )
             self._bind_group = self._device.create_bind_group(
                 layout=self.bind_group_layout,
                 entries=[
-                    {"binding": 0, "resource": self.texture.create_view()},
+                    {"binding": 0, "resource": texture_view},
                     {"binding": 1, "resource": self.sampler},
                 ],
             )
@@ -115,10 +126,36 @@ class BufferChannel(ShadertoyChannel):
 class DataChannel(ShadertoyChannel):
     def __init__(self, data, filter="linear", wrap="repeat") -> None:
         self._device = get_device()
-        texture = self._create_texture_from_data(data)
-        super().__init__(texture, filter, wrap)
 
-    def _create_texture_from_data(self, data):
+        self._data = data
+
+        if filter == "mipmap":
+            need_mipmaps = True
+        else:
+            need_mipmaps = False
+
+        texture = self._create_texture_from_data(data, need_mipmaps)
+        super().__init__(texture, filter, wrap)
+        self._has_mipmaps = need_mipmaps
+
+    @property
+    def filter(self):
+        return self._filter
+
+    @filter.setter
+    def filter(self, value):
+        if value not in ["nearest", "linear", "mipmap"]:
+            raise ValueError("Invalid filter value.")
+
+        if value != self._filter:
+            self._filter = value
+            self._sampler = None
+        if value == "mipmap" and not self._has_mipmaps:
+            self._texture.destroy()
+            self._texture = self._create_texture_from_data(self._data, True)
+        
+
+    def _create_texture_from_data(self, data, need_mipmaps=False):
         shape = data.shape # NHWC
 
         if len(shape) == 2: # HW
@@ -153,11 +190,19 @@ class DataChannel(ShadertoyChannel):
             bytes_per_pixel = 4
         else:
             raise ValueError("Invalid image data shape.")
+        
+        if need_mipmaps:
+            mipmap_level_count = get_mip_level_count(size)
+            usage = wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST | wgpu.TextureUsage.RENDER_ATTACHMENT
+        else:
+            mipmap_level_count = 1
+            usage = wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST
 
         texture = self._device.create_texture(
             size=size,
             format=format,
-            usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
+            usage=usage,
+            mip_level_count=mipmap_level_count,
         )
 
         self._device.queue.write_texture(
@@ -166,6 +211,9 @@ class DataChannel(ShadertoyChannel):
             {"bytes_per_row": size[0] * bytes_per_pixel, "rows_per_image": size[1]},
             size,
         )
+
+        if need_mipmaps:
+            generate_mipmaps(texture)
 
         return texture
 
