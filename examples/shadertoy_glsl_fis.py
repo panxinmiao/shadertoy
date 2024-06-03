@@ -106,9 +106,9 @@ if __name__ == "__main__":
     rgba_noise_img = iio.imread(Path(__file__).parent / "media"/"rgba_noise_medium.png")
     blue_noise_img = iio.imread(Path(__file__).parent / "media"/"blue_noise.png")
 
-    shader.buffer_a_pass.channel_0 = DataChannel(rgba_noise_img)
+    shader.buffer_a_pass.channel_0 = DataChannel(rgba_noise_img, vflip=True)
     shader.buffer_a_pass.channel_1 = shader.buffer_a_pass
-    shader.buffer_a_pass.channel_2 = DataChannel(blue_noise_img, filter="nearest")
+    shader.buffer_a_pass.channel_2 = DataChannel(blue_noise_img, filter="nearest", vflip=True)
 
     shader.main_pass.channel_0 = shader.buffer_a_pass
 

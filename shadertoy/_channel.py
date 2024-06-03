@@ -124,7 +124,7 @@ class BufferChannel(ShadertoyChannel):
 
 
 class DataChannel(ShadertoyChannel):
-    def __init__(self, data, filter="linear", wrap="repeat") -> None:
+    def __init__(self, data, filter="linear", wrap="repeat", vflip=False) -> None:
         self._device = get_device()
 
         self._data = data
@@ -134,9 +134,10 @@ class DataChannel(ShadertoyChannel):
         else:
             need_mipmaps = False
 
-        texture = self._create_texture_from_data(data, need_mipmaps)
+        self._vflip = vflip
+
+        texture = self._create_texture_from_data(data, need_mipmaps, vflip)
         super().__init__(texture, filter, wrap)
-        self._has_mipmaps = need_mipmaps
 
     @property
     def filter(self):
@@ -153,9 +154,20 @@ class DataChannel(ShadertoyChannel):
         if value == "mipmap" and not self._has_mipmaps:
             self._texture.destroy()
             self._texture = self._create_texture_from_data(self._data, True)
+
+    @property
+    def vflip(self):
+        return self._vflip
+    
+    @vflip.setter
+    def vflip(self, value):
+        if value != self._vflip:
+            self._vflip = value
+            self._texture.destroy()
+            self._texture = self._create_texture_from_data(self._data, self._has_mipmaps, value)
         
 
-    def _create_texture_from_data(self, data, need_mipmaps=False):
+    def _create_texture_from_data(self, data, need_mipmaps=False, vflip=False):
         shape = data.shape # NHWC
 
         if len(shape) == 2: # HW
@@ -205,6 +217,9 @@ class DataChannel(ShadertoyChannel):
             mip_level_count=mipmap_level_count,
         )
 
+        if vflip:
+            data = np.ascontiguousarray(np.flipud(data))
+
         self._device.queue.write_texture(
             {"texture": texture, "mip_level": 0, "origin": (0, 0, 0)},
             data,
@@ -214,6 +229,8 @@ class DataChannel(ShadertoyChannel):
 
         if need_mipmaps:
             generate_mipmaps(texture)
+        
+        self._has_mipmaps = need_mipmaps
 
         return texture
 
