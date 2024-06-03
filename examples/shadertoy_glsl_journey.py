@@ -282,7 +282,7 @@ if __name__ == "__main__":
         buffer_b_code=buffer_b_code,
         common_code=common_code,
     )
-    noise_img = iio.imread(Path(__file__).parent / "shadertoy_noise.png")
+    noise_img = iio.imread(Path(__file__).parent / "media"/"gray_noise_medium.png")
     shader.buffer_a_pass.channel_0 = DataChannel(noise_img)
     shader.buffer_a_pass.channel_1 = shader.buffer_a_pass
     shader.buffer_b_pass.channel_0 = shader.buffer_a_pass

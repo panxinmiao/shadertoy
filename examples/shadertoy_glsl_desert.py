@@ -1747,7 +1747,7 @@ from pathlib import Path
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code)
-    noise_img = iio.imread(Path(__file__).parent / "shadertoy_noise.png")
+    noise_img = iio.imread(Path(__file__).parent / "media"/"gray_noise_medium.png")
     noise = DataChannel(noise_img, filter="mipmap")
     shader.main_pass.channel_0 = noise
     shader.main_pass.channel_1 = noise

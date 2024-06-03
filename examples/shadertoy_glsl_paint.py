@@ -1,4 +1,4 @@
-from wgpu.utils.shadertoy import Shadertoy
+from shadertoy import Shadertoy
 
 # https://www.shadertoy.com/view/ssjyWc
 
