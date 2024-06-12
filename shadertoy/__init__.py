@@ -1,2 +1,2 @@
 from ._shadertoy import Shadertoy
-from ._channel import DataChannel, AudioChannel
+from ._channel import DataChannel

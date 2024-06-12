@@ -6,8 +6,11 @@ import sounddevice as sd
 import soundfile as sf
 import requests
 from tqdm import tqdm
+import wgpu
+from ._channel import ShadertoyChannel
+from ._shared import get_device
 
-class NumpyCircularBuffer:
+class _NumpyCircularBuffer:
     """
     Circular buffer implemented using numpy arrays.
     This is used to store the last N samples of audio data.
@@ -50,7 +53,7 @@ class NumpyCircularBuffer:
             )
 
 
-class AudioAnalyzer:
+class _AudioAnalyzer:
     """
     Simple implementation of Audio AnalyserNode in W3C Web Audio API.
     See: https://www.w3.org/TR/webaudio/#AnalyserNode
@@ -66,7 +69,7 @@ class AudioAnalyzer:
 
         # last 32768 samples, 2 channels
         # In order to allow for an increase in fftsize, we should effectively keep around the last 32768 samples
-        self._buffer = NumpyCircularBuffer(32768, (2,))
+        self._buffer = _NumpyCircularBuffer(32768, (2,))
 
     @property
     def frequency_bin_count(self):
@@ -170,7 +173,7 @@ class AudioAnalyzer:
         return self._byte_frequency_data
 
 
-class AudioPlayer:
+class _AudioPlayer:
     def __init__(self) -> None:
         self._analyzer = None
         # we use 128 samples as a block size as default, it's called a render quantum in W3C spec
@@ -304,3 +307,34 @@ class AudioPlayer:
                         pbar.update(len(data) / audio_file.samplerate)
                     else:
                         break
+
+
+class AudioChannel(ShadertoyChannel):
+    def __init__(self, src, filter="linear", wrap="clamp") -> None:
+        self._src = src
+        self._audio = _AudioPlayer()
+        self._audio_analyzer = _AudioAnalyzer(2048)
+        self._audio.analyzer = self._audio_analyzer
+        self._device = get_device()
+        texture = self._device.create_texture(
+            size=(512, 2, 1),
+            format=wgpu.TextureFormat.r8unorm,
+            usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
+        )
+        super().__init__(texture, filter, wrap)
+
+    def play(self):
+        self._audio.play(self._src)
+    
+    def update(self):
+        t_data = self._audio_analyzer.get_byte_time_domain_data()
+        f_data = self._audio_analyzer.get_byte_frequency_data()
+
+        data = np.stack([f_data[:512], t_data[:512]])
+
+        self._device.queue.write_texture(
+            {"texture": self._texture, "mip_level": 0, "origin": (0, 0, 0)},
+            data,
+            {"bytes_per_row": 512, "rows_per_image": 2},
+            (512, 2, 1),
+        )

@@ -3,8 +3,6 @@ import numpy as np
 from ._shared import get_device, get_channel_layout, get_sampler
 from ._mipmapsutil import get_mip_level_count, generate_mipmaps
 
-from ._audio import AudioAnalyzer, AudioPlayer
-
 class ShadertoyChannel:
     def __init__(self, resource, filter="linear", wrap="repeat") -> None:
         self._device = get_device()
@@ -240,34 +238,3 @@ class DataChannel(ShadertoyChannel):
         return texture
 
 DEFAULT_CHANNEL = DataChannel(np.zeros((1,1), dtype=np.uint8))
-
-class AudioChannel(ShadertoyChannel):
-    def __init__(self, src, filter="linear", wrap="repeat") -> None:
-        self._src = src
-        self._audio = AudioPlayer()
-        self._audio_analyzer = AudioAnalyzer(2048)
-        self._audio.analyzer = self._audio_analyzer
-        self._device = get_device()
-        texture = self._device.create_texture(
-            size=(512, 2, 1),
-            format=wgpu.TextureFormat.r8unorm,
-            usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
-        )
-        super().__init__(texture, filter, wrap)
-
-    def play(self):
-        self._audio.play(self._src)
-    
-    def update(self):
-        t_data = self._audio_analyzer.get_byte_time_domain_data()
-        f_data = self._audio_analyzer.get_byte_frequency_data()
-
-        data = np.stack([f_data[:512], t_data[:512]])
-
-        self._device.queue.write_texture(
-            {"texture": self._texture, "mip_level": 0, "origin": (0, 0, 0)},
-            data,
-            {"bytes_per_row": 512, "rows_per_image": 2},
-            (512, 2, 1),
-        )
-
