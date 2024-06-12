@@ -371,8 +371,7 @@ class ShaderPass:
         elif isinstance(renter_target, BufferChannel):
             target_texture = renter_target.target_texture
         else:
-            print(renter_target)
-            raise ValueError("Invalid render target.")
+            raise ValueError("Invalid render target.", renter_target)
 
         render_pass = command_encoder.begin_render_pass(
             color_attachments=[
@@ -387,11 +386,12 @@ class ShaderPass:
         )
 
         render_pass.set_pipeline(self.get_render_pipeline())
-        render_pass.set_bind_group(0, uniform_bind_group, [], 0, 99)
+        render_pass.set_bind_group(0, uniform_bind_group)
         for i, channel in enumerate(
             [self._channel_0, self._channel_1, self._channel_2, self._channel_3]
         ):
-            render_pass.set_bind_group(i + 1, channel.bind_group, [], 0, 99)
+            channel.update()
+            render_pass.set_bind_group(i + 1, channel.bind_group)
         render_pass.draw(3, 1, 0, 0)
         render_pass.end()
 

@@ -161,7 +161,7 @@ fn main( @location( 0 ) vTex : vec2<f32> ) -> @location( 0 ) vec4<f32> {
             )
 
             pass_encoder.set_pipeline(pipeline)
-            pass_encoder.set_bind_group(0, bind_group, [], 0, 99)
+            pass_encoder.set_bind_group(0, bind_group)
             pass_encoder.draw(4, 1, 0, 0)
             pass_encoder.end()
 
