@@ -202,14 +202,19 @@ class _AudioPlayer:
                 r.raise_for_status()
                 path = io.BytesIO(r.content)
                 play_func = self._play_local
-        else:
+        elif os.path.isfile(path):
             play_func = self._play_local
+        else:
+            raise ValueError("Invalid path")
 
         play_t = threading.Thread(target=play_func, args=(path,), daemon=True)
         play_t.start()
 
-    def _play_local(self, local_file):
-        data, samplerate = sf.read(local_file, dtype=np.float32, always_2d=True)
+    def play_buffer(self, data, samplerate=44100):
+        play_t = threading.Thread(target=self._play_data, args=(data, samplerate), daemon=True)
+        play_t.start()
+
+    def _play_data(self, data, samplerate):
         block_size = self.block_size
 
         stream = sd.OutputStream(
@@ -233,6 +238,10 @@ class _AudioPlayer:
                     if self.analyzer:
                         self.analyzer.receive_data(frames_data)
                     pbar.update(block_size / samplerate)
+
+    def _play_local(self, local_file):
+        data, samplerate = sf.read(local_file, dtype=np.float32, always_2d=True)
+        self._play_data(data, samplerate)
 
     def _play_stream(self, path):
         response = requests.get(path, stream=True)
@@ -307,7 +316,6 @@ class _AudioPlayer:
                         pbar.update(len(data) / audio_file.samplerate)
                     else:
                         break
-
 
 class AudioChannel(ShadertoyChannel):
     def __init__(self, src, filter="linear", wrap="clamp") -> None:

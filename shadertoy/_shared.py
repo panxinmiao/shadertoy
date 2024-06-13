@@ -72,3 +72,21 @@ def get_sampler(filter="linear", wrap="repeat"):
         )
         _gpu_cache["sampler_" + filter + "_" + wrap] = sampler
     return sampler
+
+def get_audio_buffer_layout():
+    layout = _gpu_cache.get("audio_buffer_layout", None)
+    if layout is None:
+        device = get_device()
+        layout = device.create_bind_group_layout(
+            entries=[
+                {
+                    "binding": 0,
+                    "visibility": wgpu.ShaderStage.COMPUTE,
+                    "buffer": {
+                        "type": wgpu.BufferBindingType.storage,
+                    },
+                }
+            ]
+        )
+        _gpu_cache["audio_buffer_layout"] = layout
+    return layout

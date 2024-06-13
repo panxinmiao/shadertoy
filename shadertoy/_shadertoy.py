@@ -5,6 +5,7 @@ from wgpu.gui.auto import WgpuCanvas, run
 from ._shared import get_device, get_uniform_input_layout
 from ._channel import BufferChannel
 from ._pass import ShaderPass
+from ._audio_pass import AudioShaderPass
 
 class Shadertoy:
     def __init__(
@@ -15,6 +16,7 @@ class Shadertoy:
         buffer_b_code=None,
         buffer_c_code=None,
         buffer_d_code=None,
+        sound_code=None,
         resolution=(800, 450),
     ) -> None:
 
@@ -62,6 +64,7 @@ class Shadertoy:
         self._buffer_b_pass = None
         self._buffer_c_pass = None
         self._buffer_d_pass = None
+        self._sound_pass = None
 
         if buffer_a_code is not None:
             buffer_a = BufferChannel(resolution)
@@ -83,6 +86,9 @@ class Shadertoy:
             self._buffer_d_pass = ShaderPass(
                 common_code + buffer_d_code, render_target=buffer_d
             )
+
+        if sound_code is not None:
+            self._sound_pass = AudioShaderPass(common_code + sound_code)
 
         self._main_pass = ShaderPass(
             common_code + main_code, render_target=self._canvas, flip=True
@@ -196,5 +202,10 @@ class Shadertoy:
         )
 
     def show(self):
+        if self._sound_pass is not None:
+            from .audio import _AudioPlayer
+            audio_data = self._sound_pass.get_audio_data()
+            audio_player = _AudioPlayer()
+            audio_player.play_buffer(audio_data, 44100)
         self._canvas.request_draw(self._draw_frame)
         run()
