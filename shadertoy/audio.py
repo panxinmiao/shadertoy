@@ -4,7 +4,6 @@ import os
 import threading
 import sounddevice as sd
 import soundfile as sf
-import requests
 from tqdm import tqdm
 import wgpu
 from ._channel import ShadertoyChannel
@@ -198,6 +197,7 @@ class _AudioPlayer:
             if stream:
                 play_func = self._play_stream
             else:
+                import requests
                 r = requests.get(path)
                 r.raise_for_status()
                 path = io.BytesIO(r.content)
@@ -244,6 +244,7 @@ class _AudioPlayer:
         self._play_data(data, samplerate)
 
     def _play_stream(self, path):
+        import requests
         response = requests.get(path, stream=True)
         response.raise_for_status()
         total_size = int(response.headers.get("content-length", 0))

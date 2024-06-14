@@ -5,7 +5,7 @@ from wgpu.gui.auto import WgpuCanvas, run
 from ._shared import get_device, get_uniform_input_layout
 from ._channel import BufferChannel
 from ._pass import ShaderPass
-from ._audio_pass import AudioShaderPass
+from ._sound_pass import SoundPass
 
 class Shadertoy:
     def __init__(
@@ -88,7 +88,7 @@ class Shadertoy:
             )
 
         if sound_code is not None:
-            self._sound_pass = AudioShaderPass(common_code + sound_code)
+            self._sound_pass = SoundPass(common_code + sound_code)
 
         self._main_pass = ShaderPass(
             common_code + main_code, render_target=self._canvas, flip=True

@@ -41,7 +41,7 @@ void main() {
 }
 """
 
-class AudioShaderPass:
+class SoundPass:
     def __init__(
         self,
         shader_code,
