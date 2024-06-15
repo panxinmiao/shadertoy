@@ -144,6 +144,8 @@ class Shadertoy:
     def _bind_events(self):
         def on_resize(event):
             w, h = int(event["width"]), int(event["height"])
+            if w == 0 or h == 0:
+                return
             self._uniform_data["resolution"] = (w, h, 1)
             passes = [
                 self._buffer_a_pass,

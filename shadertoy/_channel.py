@@ -173,6 +173,9 @@ class DataChannel(ShadertoyChannel):
     def _create_texture_from_data(self, data, need_mipmaps=False, vflip=False):
         shape = data.shape # NHWC
 
+        if vflip:
+            data = np.ascontiguousarray(np.flipud(data))
+
         if len(shape) == 2: # HW
             shape = shape + (1,)
 
@@ -219,9 +222,6 @@ class DataChannel(ShadertoyChannel):
             usage=usage,
             mip_level_count=mipmap_level_count,
         )
-
-        if vflip:
-            data = np.ascontiguousarray(np.flipud(data))
 
         self._device.queue.write_texture(
             {"texture": texture, "mip_level": 0, "origin": (0, 0, 0)},
