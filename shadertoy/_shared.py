@@ -15,14 +15,15 @@ def get_device():
 
 
 def get_channel_layout(view_dimension=wgpu.TextureViewDimension.d2):
-    layout = _gpu_cache.get("channel_layout_" + view_dimension, None)
+    key = "channel_layout_" + view_dimension
+    layout = _gpu_cache.get(key, None)
     if layout is None:
         device = get_device()
         layout = device.create_bind_group_layout(
             entries=[
                 {
                     "binding": 0,
-                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "visibility": wgpu.ShaderStage.FRAGMENT | wgpu.ShaderStage.COMPUTE,
                     "texture": {
                         "sample_type": wgpu.TextureSampleType.float,
                         "view_dimension": view_dimension,
@@ -30,12 +31,12 @@ def get_channel_layout(view_dimension=wgpu.TextureViewDimension.d2):
                 },
                 {
                     "binding": 1,
-                    "visibility": wgpu.ShaderStage.FRAGMENT,
+                    "visibility": wgpu.ShaderStage.FRAGMENT | wgpu.ShaderStage.COMPUTE,
                     "sampler": {"type": wgpu.SamplerBindingType.filtering},
                 },
             ]
         )
-        _gpu_cache["channel_layout_" + view_dimension] = layout
+        _gpu_cache[key] = layout
     return layout
 
 

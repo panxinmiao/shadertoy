@@ -119,6 +119,10 @@ class Shadertoy:
     @property
     def buffer_d_pass(self):
         return self._buffer_d_pass
+    
+    @property
+    def sound_pass(self):
+        return self._sound_pass
 
     def _draw_frame(self):
         # Update uniform buffer

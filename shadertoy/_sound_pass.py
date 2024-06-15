@@ -9,6 +9,26 @@ const i_sample_rate: f32 = 44100.0;
 
 @group(0) @binding(0)
 var<storage> audio_buffer : array<vec2f, 44100 * 180>;
+
+@group(1) @binding(0)
+var i_channel0: texture_2d<f32>;
+@group(1) @binding(1)
+var sampler0: sampler;
+
+@group(2) @binding(0)
+var i_channel1: texture_2d<f32>;
+@group(2) @binding(1)
+var sampler1: sampler;
+
+@group(3) @binding(0)
+var i_channel2: texture_2d<f32>;
+@group(3) @binding(1)
+var sampler2: sampler;
+
+@group(4) @binding(0)
+var i_channel3: texture_2d<f32>;
+@group(4) @binding(1)
+var sampler3: sampler;
 """
 
 compute_code_wgsl = """
@@ -30,13 +50,32 @@ const float iSampleRate = 44100.0;
 layout(set = 0, binding = 0) buffer AudioBuffer {
     vec2 audio_buffer[44100 * 180];
 };
+
+#define iChannel0 sampler2D(i_channel0, sampler0)
+#define iChannel1 sampler2D(i_channel1, sampler1)
+#define iChannel2 sampler2D(i_channel2, sampler2)
+#define iChannel3 sampler2D(i_channel3, sampler3)
+
+#define mainSound main_sound
+
+layout(set = 1, binding = 0) uniform texture2D i_channel0;
+layout(set = 1, binding = 1) uniform sampler sampler0;
+
+layout(set = 2, binding = 0) uniform texture2D i_channel1;
+layout(set = 2, binding = 1) uniform sampler sampler1;
+
+layout(set = 3, binding = 0) uniform texture2D i_channel2;
+layout(set = 3, binding = 1) uniform sampler sampler2;
+
+layout(set = 4, binding = 0) uniform texture2D i_channel3;
+layout(set = 4, binding = 1) uniform sampler sampler3;
 """
 
 compute_code_glsl = """
 void main() {
     uint samp = 44100 * gl_GlobalInvocationID.y + gl_GlobalInvocationID.x;
     float time = float(samp) / 44100.0;
-    vec2 sample_value = mainSound(int(samp), time);
+    vec2 sample_value = main_sound(int(samp), time);
     audio_buffer[samp] = sample_value;
 }
 """
