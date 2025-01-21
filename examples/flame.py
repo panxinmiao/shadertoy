@@ -1,7 +1,6 @@
-from shadertoy import Shadertoy
-
+# https://www.shadertoy.com/view/MdX3zr
 shader_code = """
-// https://www.shadertoy.com/view/MdX3zr
+
 // Created by anatole duprat - XT95/2013
 // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 float noise(vec3 p) //Thx to Las^Mercury
@@ -63,6 +62,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
    //fragColor = mix(vec4(1.), mix(vec4(1.,.5,.1,1.),vec4(0.1,.5,1.,1.),p.y*.02+.4), pow(glow*2.,4.));
 }
 """  # noqa
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)

@@ -1,4 +1,4 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/XtlSD7
 
 main_code = """
 // Interesting findings from original NES Super Mario Bros.:
@@ -1860,6 +1860,8 @@ vec2 mainSound( in int samp, float time )
     return vec2( ret, ret );
 }
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code, sound_code=sound_code)

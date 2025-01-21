@@ -344,11 +344,12 @@ from pathlib import Path
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code, sound_code=sound_code)
+
     stars_img = iio.imread(Path(__file__).parent / "media"/"stars.jpg")
     organic_2 = iio.imread(Path(__file__).parent / "media"/"organic_2.jpg")
+    organic_channel = DataChannel(organic_2, filter="mipmap")
 
     shader.main_pass.channel_0 = DataChannel(stars_img, filter="mipmap")
-    organic_channel = DataChannel(organic_2, filter="mipmap")
     shader.main_pass.channel_1 = organic_channel
 
     shader.sound_pass.channel_0 = organic_channel

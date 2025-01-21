@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy
-
 # https://www.shadertoy.com/view/ssjyWc
 
 common_code = """
@@ -398,6 +396,8 @@ void mainImage( out vec4 fragColor, in vec2 pos )
     fragColor = rho;
 }
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(

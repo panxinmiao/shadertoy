@@ -1,7 +1,6 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/wlBcDK
 
 shader_code = """
-// migrated from https://www.shadertoy.com/view/wlBcDK, By Kali
 fn hsv2rgb(c: vec3<f32>) -> vec3<f32> {
     let K = vec4<f32>(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     let p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
@@ -50,6 +49,9 @@ fn shader_main(frag_coord: vec2<f32>) -> vec4<f32> {
     return vec4<f32>(c/(aa*aa*4.0)*(1.0-exp(-20.0*uv.y*uv.y)),1.0);
 }
 """
+
+from shadertoy import Shadertoy
+
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)
     shader.show()

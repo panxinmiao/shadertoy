@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy
-
 # https://www.shadertoy.com/view/ssjyWc
 
 common_code = """
@@ -196,6 +194,8 @@ Main
     Q = mix(Q,D(U),.5);
 }
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(

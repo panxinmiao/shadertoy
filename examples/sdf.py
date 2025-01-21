@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy
-
 shader_code = """
 // https://www.shadertoy.com/view/Xds3zN
 #if HW_PERFORMANCE==0
@@ -579,6 +577,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     fragColor = vec4( tot, 1.0 );
 }
 """  # noqa
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)

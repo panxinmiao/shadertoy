@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy
-
 shader_code = """
 fn render(_p: vec2<f32>) -> vec3<f32> {
     let s = sin(i_time) * sin(i_time) * sin(i_time) + 0.5;
@@ -24,6 +22,9 @@ fn shader_main(frag_coord: vec2<f32>) -> vec4<f32> {
     return vec4<f32>(col,1.0);
 }
 """
+
+from shadertoy import Shadertoy
+
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)
     shader.show()

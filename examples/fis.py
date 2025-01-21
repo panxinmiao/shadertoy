@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy, DataChannel
-
 # https://www.shadertoy.com/view/MfyXzV
 
 main_code = """
@@ -95,6 +93,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     fragColor = vec4(col,1.0);
 }
 """
+
+from shadertoy import Shadertoy, DataChannel
 import imageio.v3 as iio
 from pathlib import Path
 

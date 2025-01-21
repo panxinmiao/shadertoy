@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy, DataChannel
-
 # https://www.shadertoy.com/view/MfyXzV
 
 main_code = """
@@ -239,6 +237,9 @@ buffer_a_code = """
 
 		}
 """
+
+from shadertoy import Shadertoy, DataChannel
+
 import imageio.v3 as iio
 from pathlib import Path
 

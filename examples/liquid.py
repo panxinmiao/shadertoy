@@ -1,6 +1,13 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/llK3Dy
 
 main_code = """
+// ***********************************************************
+// Alcatraz / Rhodium 4k Intro liquid carbon
+// by Jochen "Virgill" Feldkötter
+//
+// 4kb executable: http://www.pouet.net/prod.php?which=68239
+// Youtube: https://www.youtube.com/watch?v=YK7fbtQw3ZU
+// ***********************************************************
 
 #define time iTime
 #define res iResolution
@@ -208,6 +215,8 @@ void mainImage(out vec4 fragColor,in vec2 fragCoord)
 
 
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code, buffer_a_code=buffer_a_code)

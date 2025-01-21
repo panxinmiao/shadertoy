@@ -1,7 +1,6 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/cs2GWD
 
 shader_code = """
-// https://www.shadertoy.com/view/cs2GWD
 #define lofi(i,j) (floor((i)/(j))*(j))
 #define lofir(i,j) (round((i)/(j))*(j))
 const float PI=3.1415926;
@@ -378,8 +377,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
       vec3 led=vec3(1);
       led*=exp(-60.*sdbox(cc,vec2(0.,.08)));
       led*=c.x>.5?vec3(5,1,2):vec3(1,5,2);
-      // float lv=texture(iChannel0,vec2(march.grid.h.z,0)).x*1.;
-      col+=led*step(c.x,-.8);
+      float lv=texture(iChannel0,vec2(march.grid.h.z,0)).x*1.;
+      col+=led*step(c.x,-.8+1.6*lv);
       basecol=.04*led;
     }else if(mtl==2.){//led
       basecol=vec3(0);
@@ -444,6 +443,13 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 }
 """  # noqa
 
+from shadertoy import Shadertoy
+from shadertoy.audio import AudioChannel
+from pathlib import Path
+
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)
+    audio_channel = AudioChannel(Path(__file__).parent / "media"/"electro_nebulae.mp3")
+    shader.main_pass.channel_0 = audio_channel
+    audio_channel.play()
     shader.show()

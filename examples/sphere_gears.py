@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy, DataChannel
-
 # https://www.shadertoy.com/view/tt2XzG
 
 main_code = """
@@ -479,6 +477,8 @@ vec2 mainSound( in int samp, float time )
     return vec2(y*0.15);
 }
 """
+
+from shadertoy import Shadertoy, DataChannel
 
 import imageio.v3 as iio
 from pathlib import Path

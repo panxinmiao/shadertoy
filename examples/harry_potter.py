@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy, DataChannel
-
 # https://www.shadertoy.com/view/lssXWS
 
 main_code = """
@@ -275,6 +273,8 @@ vec2 mainSound( in int samp, float time )
   return tot;
 }
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code, sound_code=sound_code)

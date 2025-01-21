@@ -1,7 +1,6 @@
-from shadertoy import Shadertoy
-
+# https://www.shadertoy.com/view/Ms2SD1
 shader_code = """
-// migrated from https://www.shadertoy.com/view/Ms2SD1, "Seascape" by Alexander Alekseev aka TDM - 2014
+// "Seascape" by Alexander Alekseev aka TDM - 2014
 const NUM_STEPS = 8;
 const PI = 3.141592;
 const EPSILON = 0.001;
@@ -162,6 +161,9 @@ fn shader_main(frag_coord: vec2<f32>) -> vec4<f32> {
     return vec4<f32>(pow(color, vec3<f32>(0.65)), 1.0);
 }
 """
+
+from shadertoy import Shadertoy
+
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)
     shader.show()

@@ -1,7 +1,6 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/NlsXDH
 
 shader_code = """
-// migrated from https://www.shadertoy.com/view/NlsXDH, By Kali
 const det = 0.001;
 var<private> t: f32;
 var<private> boxhit: f32;
@@ -119,6 +118,8 @@ fn shader_main(frag_coord: vec2<f32>) -> vec4<f32> {
     return vec4<f32>(col,1.0);
 }
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)

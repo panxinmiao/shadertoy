@@ -1,7 +1,6 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/csjGDD
 
 shader_code = """
-// migrated from: https://www.shadertoy.com/view/csjGDD, By Kali
 var<private> det : f32 = 0.001;
 var<private> br : f32 = 0.0;
 var<private> tub : f32 = 0.0;
@@ -157,6 +156,9 @@ fn shader_main(frag_coord : vec2<f32>) -> vec4<f32> {
     return vec4<f32>(col, 1.0);
 }
 """
+
+from shadertoy import Shadertoy
+
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)
     shader.show()

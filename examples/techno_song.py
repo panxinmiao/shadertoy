@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy
-
 # https://www.shadertoy.com/view/sls3WM
 
 main_code = """
@@ -935,6 +933,8 @@ vec2 mainSound( int samp, float time )
 
 sound_code = """
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code, common_code=common_code, sound_code=sound_code)

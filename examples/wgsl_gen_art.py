@@ -1,7 +1,5 @@
-from shadertoy import Shadertoy
-
+# https://www.shadertoy.com/view/mds3DX
 shader_code = """
-// migrated from: https://www.shadertoy.com/view/mds3DX
 const SHAPE_SIZE : f32 = .618;
 const CHROMATIC_ABBERATION : f32 = .01;
 const ITERATIONS : f32 = 10.;
@@ -67,6 +65,8 @@ fn shader_main(frag_coord: vec2<f32>) -> vec4<f32> {
     return fragColor;
 }
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)

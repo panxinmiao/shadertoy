@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy, DataChannel
-
 # https://www.shadertoy.com/view/ldXXDj
 
 main_code = """
@@ -364,6 +362,7 @@ float doChannel2( float t )
 }
 """
 
+from shadertoy import Shadertoy, DataChannel
 import imageio.v3 as iio
 from pathlib import Path
 

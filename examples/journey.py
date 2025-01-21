@@ -1,4 +1,4 @@
-from shadertoy import Shadertoy, DataChannel
+# https://www.shadertoy.com/view/NltSRH
 
 common_code = """
 #define GLOW_SAMPLES 40
@@ -272,6 +272,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 }
 """
 
+from shadertoy import Shadertoy, DataChannel
 import imageio.v3 as iio
 from pathlib import Path
 

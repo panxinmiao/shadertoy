@@ -1,7 +1,6 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/Wt33Wf
 
 shader_code = """
-// https://www.shadertoy.com/view/Wt33Wf
 float sun(vec2 uv, float battery)
 {
     float val = smoothstep(0.3, 0.29, length(uv));
@@ -148,6 +147,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     
 }
 """  # noqa
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)

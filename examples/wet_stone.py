@@ -1,7 +1,6 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/ldSSzV
 
 shader_code = """
-// https://www.shadertoy.com/view/ldSSzV
 /*
 "Wet stone" by Alexander Alekseev aka TDM - 2014
 License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -261,6 +260,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
    fragColor = vec4(color,1.0);
 }
 """  # noqa
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)

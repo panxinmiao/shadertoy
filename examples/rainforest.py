@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy
-
 # https://www.shadertoy.com/view/4ttSWf
 
 main_code = """
@@ -988,6 +986,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     }
 }
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code, buffer_a_code=buffer_a_code)

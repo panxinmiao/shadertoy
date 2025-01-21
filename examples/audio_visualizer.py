@@ -1,6 +1,3 @@
-from shadertoy import Shadertoy
-from shadertoy.audio import AudioChannel
-
 # https://www.shadertoy.com/view/Dtj3zW
 
 main_code = """
@@ -72,6 +69,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 }
 """
 
+from shadertoy import Shadertoy
+from shadertoy.audio import AudioChannel
 from pathlib import Path
 
 if __name__ == "__main__":

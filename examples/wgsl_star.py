@@ -1,4 +1,4 @@
-from shadertoy import Shadertoy
+# https://www.shadertoy.com/view/XlfGRj
 
 shader_code = """
 // migrated from: https://www.shadertoy.com/view/XlfGRj, By Kali
@@ -71,6 +71,8 @@ fn shader_main(frag_coord: vec2<f32>) -> vec4<f32> {
     return vec4<f32>(v * 0.01, 1.0);
 }
 """
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)

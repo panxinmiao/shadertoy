@@ -1,5 +1,3 @@
-from shadertoy import Shadertoy
-
 shader_code = """
 // https://www.shadertoy.com/view/mt2XR3
 // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -147,6 +145,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
       fragColor = vec4(col, 1.0);
 }
 """  # noqa
+
+from shadertoy import Shadertoy
 
 if __name__ == "__main__":
     shader = Shadertoy(shader_code)

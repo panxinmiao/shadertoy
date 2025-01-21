@@ -1,4 +1,4 @@
-from shadertoy import Shadertoy, DataChannel
+# https://www.shadertoy.com/view/llsGW7
 
 main_code = """
 //// [2TC 15] Mystery Mountains.
@@ -23,6 +23,7 @@ void mainImage( out vec4 c, vec2 w )
 }
 """
 
+from shadertoy import Shadertoy, DataChannel
 import imageio.v3 as iio
 from pathlib import Path
 
