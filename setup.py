@@ -5,7 +5,7 @@ SUMMARY = "shadertoy"
 
 VERSION = "0.0.1"
 
-runtime_deps = ["wgpu>=0.15.0,<0.16.0"]
+runtime_deps = ["wgpu>=0.19.0,<0.20.0"]
 
 setup(
     name=NAME,
@@ -19,9 +19,9 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization"
     ],
     packages=find_packages(
-        include=["three", 'three.*'], exclude=["*.tests", "*.tests.*", "tests.*", "tests"]
+        include=["shadertoy", 'shadertoy.*'], exclude=["*.tests", "*.tests.*", "tests.*", "tests"]
     ),
-    python_requires=">=3.8.0",
+    python_requires=">=3.9.0",
     install_requires=runtime_deps,
     license="MIT",
     description=SUMMARY,

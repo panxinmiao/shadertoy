@@ -8,8 +8,8 @@ _gpu_cache = weakref.WeakValueDictionary()
 def get_device():
     device = _gpu_cache.get("device", None)
     if device is None:
-        adapter = wgpu.gpu.request_adapter(power_preference="high-performance")
-        device = adapter.request_device(required_features=["float32-filterable"])
+        adapter = wgpu.gpu.request_adapter_sync(power_preference="high-performance")
+        device = adapter.request_device_sync(required_features=["float32-filterable"])
         _gpu_cache["device"] = device
     return device
 
