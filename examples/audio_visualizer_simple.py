@@ -133,8 +133,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 }
 """
 
-from shadertoy import Shadertoy
-from shadertoy.audio import AudioChannel
+from shadertoy import Shadertoy, AudioChannel
 from pathlib import Path
 
 if __name__ == "__main__":
@@ -147,5 +146,4 @@ if __name__ == "__main__":
     shader.main_pass.channel_0 = audio_channel
     shader.main_pass.channel_1 = shader.buffer_a_pass
 
-    audio_channel.play()
     shader.show()

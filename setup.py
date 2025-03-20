@@ -3,9 +3,18 @@ from setuptools import find_packages, setup
 NAME = "shadertoy"
 SUMMARY = "shadertoy"
 
-VERSION = "0.0.1"
+VERSION = "0.1.0"
 
-runtime_deps = ["wgpu>=0.19.0,<0.20.0"]
+runtime_deps = [
+    "wgpu>=0.21.0,<0.22.0",
+    "numpy",
+    "requests",
+    "glfw",
+    "soundfile",
+    "sounddevice",
+    "tqdm",
+]
+
 
 setup(
     name=NAME,
@@ -23,6 +32,12 @@ setup(
     ),
     python_requires=">=3.9.0",
     install_requires=runtime_deps,
+    script_name="shadertoy",
+    entry_points={
+        "console_scripts": [
+            "shadertoy = shadertoy._cli:start",
+        ]
+    },
     license="MIT",
     description=SUMMARY,
     long_description=open("README.md").read(),

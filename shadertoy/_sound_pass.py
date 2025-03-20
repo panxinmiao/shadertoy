@@ -1,8 +1,10 @@
 import wgpu
+from types import NoneType
 import numpy as np
 from ._channel import ShadertoyChannel, DEFAULT_CHANNEL
 from ._pass import ShaderPass
 from ._shared import get_device, get_audio_buffer_layout
+
 
 builtin_variables_wgsl = """
 const i_sample_rate: f32 = 44100.0;
@@ -127,44 +129,44 @@ class SoundPass:
 
     @property
     def channel_0(self):
-        return self._channel_0
+        return self._channel_0 or DEFAULT_CHANNEL
 
     @channel_0.setter
     def channel_0(self, value):
-        assert isinstance(value, (ShadertoyChannel, ShaderPass))
+        assert isinstance(value, (ShadertoyChannel, ShaderPass, NoneType))
         if isinstance(value, ShaderPass):
             value = value.render_target
         self._channel_0 = value
 
     @property
     def channel_1(self):
-        return self._channel_1
+        return self._channel_1 or DEFAULT_CHANNEL
 
     @channel_1.setter
     def channel_1(self, value):
-        assert isinstance(value, (ShadertoyChannel, ShaderPass))
+        assert isinstance(value, (ShadertoyChannel, ShaderPass, NoneType))
         if isinstance(value, ShaderPass):
             value = value.render_target
         self._channel_1 = value
 
     @property
     def channel_2(self):
-        return self._channel_2
+        return self._channel_2 or DEFAULT_CHANNEL
 
     @channel_2.setter
     def channel_2(self, value):
-        assert isinstance(value, (ShadertoyChannel, ShaderPass))
+        assert isinstance(value, (ShadertoyChannel, ShaderPass, NoneType))
         if isinstance(value, ShaderPass):
             value = value.render_target
         self._channel_2 = value
 
     @property
     def channel_3(self):
-        return self._channel_3
+        return self._channel_3 or DEFAULT_CHANNEL
 
     @channel_3.setter
     def channel_3(self, value):
-        assert isinstance(value, (ShadertoyChannel, ShaderPass))
+        assert isinstance(value, (ShadertoyChannel, ShaderPass, NoneType))
         if isinstance(value, ShaderPass):
             value = value.render_target
         self._channel_3 = value
@@ -191,10 +193,10 @@ class SoundPass:
             bind_group_layouts = [audio_buffer_bind_group_layout]
 
             for channel in [
-                self._channel_0,
-                self._channel_1,
-                self._channel_2,
-                self._channel_3,
+                self.channel_0,
+                self.channel_1,
+                self.channel_2,
+                self.channel_3,
             ]:
                 bind_group_layouts.append(channel.bind_group_layout)
 
@@ -253,7 +255,7 @@ class SoundPass:
         compute_pass.set_pipeline(self.get_pipeline())
         compute_pass.set_bind_group(0, audio_buffer_bind_group)
         for i, channel in enumerate(
-            [self._channel_0, self._channel_1, self._channel_2, self._channel_3]
+            [self.channel_0, self.channel_1, self.channel_2, self.channel_3]
         ):
             channel.update()
             compute_pass.set_bind_group(i + 1, channel.bind_group)
@@ -270,3 +272,9 @@ class SoundPass:
             data = device.queue.read_buffer(self._audio_buffer, 0, 44100 * 180 * 2 * 4)
             self._audio_data = np.frombuffer(data, np.float32).reshape(-1, 2)
         return self._audio_data
+    
+    def play(self):
+        from ._audio import _AudioPlayer
+        audio_data = self.get_audio_data()
+        audio_player = _AudioPlayer()
+        audio_player.play(audio_data)

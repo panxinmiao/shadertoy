@@ -385,7 +385,7 @@ float cloudsShadowFlat( in vec3 ro, in vec3 rd )
     return cloudsFbm(pos).x;
 }
 
-float terrainShadow( in vec3 ro, in vec3 rd, in float mint );
+// float terrainShadow( in vec3 ro, in vec3 rd, in float mint );   // Fix in Wgpu
 
 vec4 renderClouds( in vec3 ro, in vec3 rd, float tmin, float tmax, inout float resT, in vec2 px )
 {
@@ -512,13 +512,7 @@ float terrainShadow( in vec3 ro, in vec3 rd, in float mint )
     for( int i=ZERO; i<32; i++ )
     {
         vec3  pos = ro + t*rd;
-        // vec2  env = terrainMap( pos.xz );  // Don't know why this is crushed, just use the following line instead
-
-        float e = fbm_9( pos.xz/2000.0 + vec2(1.0,-2.0) );
-        float a = 1.0-smoothstep( 0.12, 0.13, abs(e+0.12) ); // flag high-slope areas (-0.25, 0.0)
-        e = 600.0*e + 600.0;
-        e += 90.0*smoothstep( 552.0, 594.0, e );
-        vec2  env = vec2(e,a);
+        vec2  env = terrainMap( pos.xz );
 
         float hei = pos.y - env.x;
         res = min( res, 32.0*hei/t );
@@ -529,14 +523,7 @@ float terrainShadow( in vec3 ro, in vec3 rd, in float mint )
     for( int i=ZERO; i<128; i++ )
     {
         vec3  pos = ro + t*rd;
-
-        // vec2  env = terrainMap( pos.xz );  // Don't know why this is crushed, just use the following line instead
-
-        float e = fbm_9( pos.xz/2000.0 + vec2(1.0,-2.0) );
-        float a = 1.0-smoothstep( 0.12, 0.13, abs(e+0.12) ); // flag high-slope areas (-0.25, 0.0)
-        e = 600.0*e + 600.0;
-        e += 90.0*smoothstep( 552.0, 594.0, e );
-        vec2  env = vec2(e,a);
+        vec2  env = terrainMap( pos.xz );
 
         float hei = pos.y - env.x;
         res = min( res, 32.0*hei/t );

@@ -17,6 +17,8 @@ class ShadertoyChannel:
 
         self._bind_group = None
 
+        self._time = 0.0
+
     def update(self):
         pass
 
@@ -87,6 +89,10 @@ class ShadertoyChannel:
             )
 
         return self._bind_group
+    
+    @property
+    def time(self):
+        return self._time
 
 
 class BufferChannel(ShadertoyChannel):
@@ -236,5 +242,11 @@ class DataChannel(ShadertoyChannel):
         self._has_mipmaps = need_mipmaps
 
         return texture
+
+class TextureChannel(DataChannel):
+    def __init__(self, uri, filter="linear", wrap="repeat", vflip=False) -> None:
+        import imageio.v3 as iio
+        img = iio.imread(uri)
+        super().__init__(img, filter, wrap, vflip)
 
 DEFAULT_CHANNEL = DataChannel(np.zeros((1,1), dtype=np.uint8))

@@ -180,6 +180,9 @@ class _AudioPlayer:
         self._cache_block_size = 50 * 1024
         self._mini_playable_size = 10 * 1024
 
+        self._time = 0.0
+        self._play_t = None
+
     @property
     def block_size(self):
         return self._block_size
@@ -192,29 +195,39 @@ class _AudioPlayer:
     def analyzer(self, analyzer):
         self._analyzer = analyzer
 
-    def play(self, path, stream=True):
-        if "https://" in str(path) or "http://" in str(path):
+    def is_playing(self):
+        return self._play_t is not None and self._play_t.is_alive()
+    
+    @property
+    def time(self):
+        if self._play_t is None:
+            return 0.0
+        if self._play_t.is_alive():
+            return self._time
+        else:
+            return 0.0
+
+    def play(self, uri, stream=True):
+        if isinstance(uri, np.ndarray):
+            play_func = self._play_data
+        elif os.path.isfile(uri):
+            play_func = self._play_local
+        elif "https://" in str(uri) or "http://" in str(uri):
             if stream:
                 play_func = self._play_stream
             else:
                 import requests
-                r = requests.get(path)
+                r = requests.get(uri)
                 r.raise_for_status()
-                path = io.BytesIO(r.content)
+                uri = io.BytesIO(r.content)
                 play_func = self._play_local
-        elif os.path.isfile(path):
-            play_func = self._play_local
         else:
-            raise ValueError("Invalid path")
+            raise ValueError("Invalid Uri")
 
-        play_t = threading.Thread(target=play_func, args=(path,), daemon=True)
-        play_t.start()
+        self._play_t = threading.Thread(target=play_func, args=(uri,), daemon=True)
+        self._play_t.start()
 
-    def play_buffer(self, data, samplerate=44100):
-        play_t = threading.Thread(target=self._play_data, args=(data, samplerate), daemon=True)
-        play_t.start()
-
-    def _play_data(self, data, samplerate):
+    def _play_data(self, data, samplerate=44100):
         block_size = self.block_size
 
         stream = sd.OutputStream(
@@ -237,7 +250,10 @@ class _AudioPlayer:
                     stream.write(frames_data)
                     if self.analyzer:
                         self.analyzer.receive_data(frames_data)
-                    pbar.update(block_size / samplerate)
+                    
+                    block_time = block_size / samplerate
+                    self._time += block_time
+                    pbar.update(block_time)
 
     def _play_local(self, local_file):
         data, samplerate = sf.read(local_file, dtype=np.float32, always_2d=True)
@@ -314,13 +330,16 @@ class _AudioPlayer:
                         stream.write(data)
                         if self.analyzer:
                             self.analyzer.receive_data(data)
-                        pbar.update(len(data) / audio_file.samplerate)
+                        
+                        block_time = len(data) / audio_file.samplerate
+                        self._time += block_time
+                        pbar.update(block_time)
                     else:
                         break
 
 class AudioChannel(ShadertoyChannel):
-    def __init__(self, src, filter="linear", wrap="clamp") -> None:
-        self._src = src
+    def __init__(self, uri, filter="linear", wrap="clamp") -> None:
+        self._uri = uri
         self._audio = _AudioPlayer()
         self._audio_analyzer = _AudioAnalyzer(2048)
         self._audio.analyzer = self._audio_analyzer
@@ -330,11 +349,20 @@ class AudioChannel(ShadertoyChannel):
             format=wgpu.TextureFormat.r8unorm,
             usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
         )
+
+        self._playing = False
         super().__init__(texture, filter, wrap)
 
     def play(self):
-        self._audio.play(self._src)
-    
+        if self._playing:
+            return
+        self._playing = True
+        self._audio.play(self._uri)
+
+    @property
+    def time(self):
+        return self._audio.time
+
     def update(self):
         t_data = self._audio_analyzer.get_byte_time_domain_data()
         f_data = self._audio_analyzer.get_byte_frequency_data()

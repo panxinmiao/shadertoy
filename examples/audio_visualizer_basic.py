@@ -68,13 +68,11 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 }
 """
 
-from shadertoy import Shadertoy
-from shadertoy.audio import AudioChannel
+from shadertoy import Shadertoy, AudioChannel
 from pathlib import Path
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code)
     audio_channel = AudioChannel(Path(__file__).parent / "media"/"8_bit_mentality.mp3")
     shader.main_pass.channel_0 = audio_channel
-    audio_channel.play()
     shader.show()

@@ -298,17 +298,14 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 	fragColor = vec4(col, 1.0);
 }
 
-
 """
 
-from shadertoy import Shadertoy, DataChannel
-import imageio.v3 as iio
+from shadertoy import Shadertoy, TextureChannel
 from pathlib import Path
 
 if __name__ == "__main__":
     shader = Shadertoy(main_code, buffer_a_code=buffer_a_code)
-    noise_img = iio.imread(Path(__file__).parent / "media"/"gray_noise_medium.png")
-    shader.buffer_a_pass.channel_0 = DataChannel(noise_img)
+    shader.buffer_a_pass.channel_0 = TextureChannel(Path(__file__).parent / "media"/"gray_noise_medium.png")
     shader.buffer_a_pass.channel_1 = shader.buffer_a_pass
     shader.main_pass.channel_0 = shader.buffer_a_pass
     shader.show()
