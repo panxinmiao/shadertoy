@@ -74,7 +74,7 @@ shader.main_pass.channel_0 = audio_channel
 shader.show()
 ```
 
-### Multiple Passes:
+### Multipass:
 You can provide shader code for each pass, including a sound pass. Configure the input channel of each pass, and you can set one pass as the channel for another pass, or even for itself.
 
 ```python
@@ -118,8 +118,10 @@ Or, if you have installed as a package, you can run it directly:
 shadertoy XtlSD7
 ```
 
-Note: Not all shaders in the website are accessible with API, depending on the shader author's settings. If you encounter a "shader not found" error, it probably means the shader is not accessible via API. 
+#### Note:
+
+Not all shaders in the website are accessible with API, depending on the shader author's settings. If you encounter a "shader not found" error, it probably means the shader is not accessible via API. 
 
 Since WGPU and Naga are still in fast development, some shaders may not work as expected. If you encounter any shader validation errors, please check the wgpu [issues](https://github.com/gfx-rs/wgpu/issues), and report them if necessary.
 
-*If you find that some examples in the [examples](https://github.com/panxinmiao/shadertoy/tree/main/examples) directory works well but encounter validation errors when loading the same examples directly from API, it's likely because I've made some minor adaptations and adjustments in the examples.*
+If you find that some examples in the [examples](https://github.com/panxinmiao/shadertoy/tree/main/examples) directory works well but encounter validation errors when loading the same examples directly from API, it's likely because I've made some minor adaptations and adjustments in the examples.

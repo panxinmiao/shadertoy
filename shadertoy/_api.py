@@ -104,7 +104,10 @@ def _solve_input_channels(inputs, size, channel_cache={}, use_cache=True):
                 channel = AudioChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
             elif ctype == "musicstream":
                 src = input["src"]  # webstream
-                channel = AudioChannel(src, filter=sampler["filter"], wrap=sampler["wrap"])
+                warnings.warn("soundcloud is not supported, use a shadertoy media instead.")
+                src = "/media/a/a6a1cf7a09adfed8c362492c88c30d74fb3d2f4f7ba180ba34b98556660fada1.mp3"
+                resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
+                channel = AudioChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
             else:
                 channel = None
                 warnings.warn(
@@ -136,34 +139,39 @@ def load_from_json(shader_data, resolution=(800, 450), **kwargs) -> dict:
 
     renderpass = shader_data["Shader"]["renderpass"]
     codes = {}
+    buffer_idx = 0
     for r_pass in renderpass:
         pass_type = r_pass["type"]
-        if pass_type == "image":
-            pass_name = "Image"
+        if pass_type == "buffer":
+            r_pass["_name"] = f"buffer_{buffer_idx}"
+            buffer_idx += 1
+        elif pass_type in ("image", "sound", "common"):
+            r_pass["_name"] = pass_type
         else:
-            pass_name = r_pass["name"]
+            warnings.warn(f"Unsupported pass type: {pass_type}")
+        
+        pass_name = r_pass["_name"]
         codes[pass_name] = r_pass["code"]
 
-
     shadertoy = Shadertoy(
-        main_code = codes["Image"],
-        common_code = codes.get("Common", None),
-        buffer_a_code = codes.get("Buffer A", None),
-        buffer_b_code = codes.get("Buffer B", None),
-        buffer_c_code = codes.get("Buffer C", None),
-        buffer_d_code = codes.get("Buffer D", None),
-        sound_code = codes.get("Sound", None),
+        main_code = codes["image"],
+        common_code = codes.get("common", None),
+        buffer_a_code = codes.get("buffer_0", None),
+        buffer_b_code = codes.get("buffer_1", None),
+        buffer_c_code = codes.get("buffer_2", None),
+        buffer_d_code = codes.get("buffer_3", None),
+        sound_code = codes.get("sound", None),
         resolution = resolution,
         title = shadertoy_title,
     )
 
     passes = {
-        "Image": shadertoy.main_pass,
-        "Buffer A": shadertoy.buffer_a_pass,
-        "Buffer B": shadertoy.buffer_b_pass,
-        "Buffer C": shadertoy.buffer_c_pass,
-        "Buffer D": shadertoy.buffer_d_pass,
-        "Sound": shadertoy.sound_pass,
+        "image": shadertoy.main_pass,
+        "buffer_0": shadertoy.buffer_a_pass,
+        "buffer_1": shadertoy.buffer_b_pass,
+        "buffer_2": shadertoy.buffer_c_pass,
+        "buffer_3": shadertoy.buffer_d_pass,
+        "sound": shadertoy.sound_pass,
     }
 
     channels_cache = {}
@@ -171,18 +179,14 @@ def load_from_json(shader_data, resolution=(800, 450), **kwargs) -> dict:
     for r_pass in renderpass:
         pass_type = r_pass["type"]
         if pass_type == "buffer":
-            pass_name = r_pass["name"]
+            pass_name = r_pass["_name"]
             output_id = r_pass["outputs"][0]["id"]
             buffer_pass = passes[pass_name]
             channels_cache[output_id] = buffer_pass.render_target
 
     # solve input channels
     for r_pass in renderpass:
-        pass_type = r_pass["type"]
-        if pass_type == "image":
-            pass_name = "Image"
-        else:
-            pass_name = r_pass["name"]
+        pass_name = r_pass["_name"]
         if pass_name in passes:
             _pass = passes[pass_name]
             inputs = r_pass["inputs"]
