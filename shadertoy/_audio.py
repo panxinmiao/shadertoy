@@ -173,15 +173,27 @@ class _AudioAnalyzer:
 
 
 class _AudioPlayer:
-    def __init__(self) -> None:
+    def __init__(self, uri) -> None:
         self._analyzer = None
         # we use 128 samples as a block size as default, it's called a render quantum in W3C spec
         self._block_size = 128
         self._cache_block_size = 50 * 1024
         self._mini_playable_size = 10 * 1024
 
+        self._uri = uri
         self._time = 0.0
         self._play_t = None
+
+        self._is_stream = False
+
+        if isinstance(uri, np.ndarray):
+            self._data = uri
+            self._samplerate = 44100
+        elif os.path.isfile(uri):
+            self._data, self._samplerate = sf.read(uri, dtype=np.float32, always_2d=True)
+        elif "https://" in str(uri) or "http://" in str(uri):
+            self._is_stream = True
+   
 
     @property
     def block_size(self):
@@ -207,28 +219,41 @@ class _AudioPlayer:
         else:
             return 0.0
 
-    def play(self, uri, stream=True):
+    def _load_data(self, force_cacahe_stream=False):
+        uri = self._uri
         if isinstance(uri, np.ndarray):
-            play_func = self._play_data
+            self._data = uri
+            self._samplerate = 44100
         elif os.path.isfile(uri):
-            play_func = self._play_local
+            self._data, self._samplerate = sf.read(uri, dtype=np.float32, always_2d=True)
         elif "https://" in str(uri) or "http://" in str(uri):
-            if stream:
-                play_func = self._play_stream
-            else:
+            if force_cacahe_stream:
                 import requests
-                r = requests.get(uri)
+                r = requests.get(self._uri)
                 r.raise_for_status()
-                uri = io.BytesIO(r.content)
-                play_func = self._play_local
-        else:
-            raise ValueError("Invalid Uri")
+                self._data, self._samplerate = sf.read(io.BytesIO(r.content), dtype=np.float32, always_2d=True)
+                self._is_stream = False
+            else:
+                self._is_stream = True
+        
+        return self._data, self._samplerate
 
-        self._play_t = threading.Thread(target=play_func, args=(uri,), daemon=True)
+
+    def play(self, stream=True):
+        self._load_data(force_cacahe_stream = not stream)
+
+        if self._is_stream:
+            self._play_t = threading.Thread(target=self._play_stream, daemon=True)
+        else:
+            self._play_t = threading.Thread(target=self._play_data, daemon=True)
+        
         self._play_t.start()
 
-    def _play_data(self, data, samplerate=44100):
+    def _play_data(self):
         block_size = self.block_size
+
+        data = self._data
+        samplerate = self._samplerate
 
         stream = sd.OutputStream(
             samplerate=samplerate,
@@ -255,13 +280,11 @@ class _AudioPlayer:
                     self._time += block_time
                     pbar.update(block_time)
 
-    def _play_local(self, local_file):
-        data, samplerate = sf.read(local_file, dtype=np.float32, always_2d=True)
-        self._play_data(data, samplerate)
 
-    def _play_stream(self, path):
+    def _play_stream(self):
         import requests
-        response = requests.get(path, stream=True)
+
+        response = requests.get(self._uri, stream=True)
         response.raise_for_status()
         total_size = int(response.headers.get("content-length", 0))
 
@@ -340,7 +363,7 @@ class _AudioPlayer:
 class AudioChannel(ShadertoyChannel):
     def __init__(self, uri, filter="linear", wrap="clamp") -> None:
         self._uri = uri
-        self._audio = _AudioPlayer()
+        self._audio = _AudioPlayer(uri)
         self._audio_analyzer = _AudioAnalyzer(2048)
         self._audio.analyzer = self._audio_analyzer
         self._device = get_device()
@@ -362,6 +385,15 @@ class AudioChannel(ShadertoyChannel):
     @property
     def time(self):
         return self._audio.time
+    
+    def _set_play_time(self, time):
+        # todo: for now, only update the shader data to the given time,
+        # we should also update the audio player state to the correct time.
+        self._audio._time = time
+        pos = int(time * self._audio._samplerate)
+        if pos > 128 and pos < len(self._audio._data):
+            data_block = self._audio._data[pos-128: pos]
+            self._audio_analyzer.receive_data(data_block)
 
     def update(self):
         t_data = self._audio_analyzer.get_byte_time_domain_data()

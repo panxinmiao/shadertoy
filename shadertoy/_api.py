@@ -92,27 +92,28 @@ def _solve_input_channels(inputs, size, channel_cache={}, use_cache=True):
         if _id in channel_cache:
             channel = channel_cache[_id]
         else:
-            if ctype == "texture":
-                src = input["src"]
-                resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
-                channel = TextureChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
-            elif ctype == "buffer":
+            if ctype == "buffer":
                 channel = BufferChannel(size=size, filter=sampler["filter"], wrap=sampler["wrap"])
-            elif ctype == "music":
+            else:
                 src = input["src"]
                 resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
-                channel = AudioChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
-            elif ctype == "musicstream":
-                src = input["src"]  # webstream
-                warnings.warn("soundcloud is not supported, use a shadertoy media instead.")
-                src = "/media/a/a6a1cf7a09adfed8c362492c88c30d74fb3d2f4f7ba180ba34b98556660fada1.mp3"
-                resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
-                channel = AudioChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
-            else:
-                channel = None
-                warnings.warn(
-                    f"Unsupported channel type: {ctype}, id: {_id}"
-                )
+                if ctype == "texture":
+                    channel = TextureChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"], vflip=sampler["vflip"])
+                elif ctype == "music":
+                    channel = AudioChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
+                elif ctype == "musicstream":
+                    warnings.warn("soundcloud is not supported, use a shadertoy media instead.")
+                    src = "/media/a/a6a1cf7a09adfed8c362492c88c30d74fb3d2f4f7ba180ba34b98556660fada1.mp3"
+                    resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
+                    channel = AudioChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
+                elif ctype == "video":
+                    from ._video import VideoChannel
+                    channel = VideoChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"], vflip=sampler["vflip"])
+                else:
+                    channel = None
+                    warnings.warn(
+                        f"Unsupported channel type: {ctype}, id: {_id}"
+                    )
             
             channel_cache[_id] = channel
         
@@ -120,7 +121,7 @@ def _solve_input_channels(inputs, size, channel_cache={}, use_cache=True):
     return channels
 
 
-def load_from_json(shader_data, resolution=(800, 450), **kwargs) -> dict:
+def load_from_json(shader_data, **kwargs) -> dict:
     use_cache = kwargs.pop("use_cache", True)
 
     if not isinstance(shader_data, dict):
@@ -161,7 +162,6 @@ def load_from_json(shader_data, resolution=(800, 450), **kwargs) -> dict:
         buffer_c_code = codes.get("buffer_2", None),
         buffer_d_code = codes.get("buffer_3", None),
         sound_code = codes.get("sound", None),
-        resolution = resolution,
         title = shadertoy_title,
     )
 
@@ -195,7 +195,7 @@ def load_from_json(shader_data, resolution=(800, 450), **kwargs) -> dict:
 
     return shadertoy
 
-def load_shadertoy(uri, resolution=(800, 450), **kwargs) -> Shadertoy:
+def load_shadertoy(uri, **kwargs) -> Shadertoy:
     shader_data = load_data_from(uri)
-    shadertoy = load_from_json(shader_data, resolution=resolution, **kwargs)
+    shadertoy = load_from_json(shader_data, **kwargs)
     return shadertoy

@@ -276,5 +276,5 @@ class SoundPass:
     def play(self):
         from ._audio import _AudioPlayer
         audio_data = self.get_audio_data()
-        audio_player = _AudioPlayer()
-        audio_player.play(audio_data)
+        audio_player = _AudioPlayer(audio_data)
+        audio_player.play()

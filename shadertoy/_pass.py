@@ -1,26 +1,26 @@
 import wgpu
 import numpy as np
 from types import NoneType
-from wgpu.gui.auto import WgpuCanvas
+from wgpu.gui import WgpuCanvasBase
 from ._channel import BufferChannel, ShadertoyChannel, DEFAULT_CHANNEL
 from ._shared import get_device, get_uniform_input_layout
 
 vertex_code_glsl = """
 #version 450 core
 
-layout(location = 0) out vec2 _uv;
+layout(location = 0) out vec2 v_uv;
 
 void main(void){
     int index = int(gl_VertexID);
     if (index == 0) {
         gl_Position = vec4(-1.0, -1.0, 0.0, 1.0);
-        _uv = vec2(0.0, 1.0);
+        v_uv = vec2(0.0, 1.0);
     } else if (index == 1) {
         gl_Position = vec4(3.0, -1.0, 0.0, 1.0);
-        _uv = vec2(2.0, 1.0);
+        v_uv = vec2(2.0, 1.0);
     } else {
         gl_Position = vec4(-1.0, 3.0, 0.0, 1.0);
-        _uv = vec2(0.0, -1.0);
+        v_uv = vec2(0.0, -1.0);
     }
 }
 """
@@ -28,16 +28,16 @@ void main(void){
 builtin_variables_glsl = """
 #version 450 core
 
-vec3 i_resolution;
-vec4 i_mouse;
-float i_time;
-float i_time_delta;
-int i_frame;
+vec3 iResolution;
+vec4 iMouse;
+float iTime;
+float iTimeDelta;
+int iFrame;
 
-float i_frame_rate;
-vec4 i_date;
-float i_channel_time[4];
-vec3 i_channel_resolution[4];
+float iFrameRate;
+vec4 iDate;
+float iChannelTime[4];
+vec3 iChannelResolution[4];
 
 // Shadertoy compatibility, see we can use the same code copied from shadertoy website
 
@@ -45,19 +45,6 @@ vec3 i_channel_resolution[4];
 #define iChannel1 sampler2D(i_channel1, sampler1)
 #define iChannel2 sampler2D(i_channel2, sampler2)
 #define iChannel3 sampler2D(i_channel3, sampler3)
-
-#define iTime i_time
-#define iResolution i_resolution
-#define iTimeDelta i_time_delta
-#define iMouse i_mouse
-#define iFrame i_frame
-#define iDate i_date
-#define iFrameRate i_frame_rate
-#define iChannelTime i_channel_time
-#define iChannelResolution i_channel_resolution
-
-#define mainImage shader_main
-
 
 layout(set = 0, binding = 0) uniform texture2D i_channel0;
 layout(set = 0, binding = 1) uniform sampler sampler0;
@@ -71,7 +58,6 @@ layout(set = 2, binding = 1) uniform sampler sampler2;
 layout(set = 3, binding = 0) uniform texture2D i_channel3;
 layout(set = 3, binding = 1) uniform sampler sampler3;
 
-layout(location = 0) in vec2 _uv;
 uniform struct ShadertoyInput {
     vec4 _mouse;
     float _time;
@@ -93,34 +79,35 @@ uniform struct PassInput {
 layout(set = 4, binding = 0) uniform ShadertoyInput input;
 layout(set = 5, binding = 0) uniform PassInput pass_input;
 
-out vec4 FragColor;
-"""
 
+"""
 fragment_code_glsl = """
+layout(location = 0) in vec2 v_uv;
+out vec4 FragColor;
 
 void main(){
 
-    i_time = input._time;
-    i_resolution = input._resolution;
-    i_time_delta = input._time_delta;
-    i_mouse = input._mouse;
-    i_frame = input._frame;
-    i_date = input._date;
-    i_frame_rate = input._frame_rate;
+    iTime = input._time;
+    iResolution = input._resolution;
+    iTimeDelta = input._time_delta;
+    iMouse = input._mouse;
+    iFrame = input._frame;
+    iDate = input._date;
+    iFrameRate = input._frame_rate;
 
-    i_channel_time[0] = pass_input._channel_time_0;
-    i_channel_time[1] = pass_input._channel_time_1;
-    i_channel_time[2] = pass_input._channel_time_2;
-    i_channel_time[3] = pass_input._channel_time_3;
+    iChannelTime[0] = pass_input._channel_time_0;
+    iChannelTime[1] = pass_input._channel_time_1;
+    iChannelTime[2] = pass_input._channel_time_2;
+    iChannelTime[3] = pass_input._channel_time_3;
     
-    i_channel_resolution = pass_input._channel_resolution;
+    iChannelResolution = pass_input._channel_resolution;
 
-
-    vec2 uv = _uv;
+    vec2 uv = v_uv;
     uv.y = 1.0 - uv.y;
-    vec2 frag_coord = uv * i_resolution.xy;
 
-    shader_main(FragColor, frag_coord);
+    vec2 frag_coord = uv * iResolution.xy;
+
+    mainImage(FragColor, frag_coord);
 
 }
 
@@ -247,7 +234,7 @@ class ShaderPass:
     def __init__(
         self,
         shader_code,
-        render_target: "BufferChannel | wgpu.GPUCanvasContext",
+        render_target: "BufferChannel | wgpu.GPUCanvasContext" = None,
         channel_0=None,
         channel_1=None,
         channel_2=None,
@@ -428,16 +415,16 @@ class ShaderPass:
 
     @property
     def render_target(self) -> "BufferChannel | wgpu.GPUCanvasContext":
-        if isinstance(self._render_target, WgpuCanvas):
+        if isinstance(self._render_target, WgpuCanvasBase):
             return self._render_target.get_context()
 
         return self._render_target
 
     @render_target.setter
     def render_target(self, value):
-        assert isinstance(value, (BufferChannel, WgpuCanvas, wgpu.GPUCanvasContext))
+        assert isinstance(value, (BufferChannel, WgpuCanvasBase, wgpu.GPUCanvasContext, NoneType))
 
-        if isinstance(value, WgpuCanvas):
+        if isinstance(value, WgpuCanvasBase):
             value = value.get_context()
 
         self._render_target = value
@@ -446,7 +433,7 @@ class ShaderPass:
     @property
     def target_format(self):
         if isinstance(self.render_target, wgpu.GPUCanvasContext):
-            return wgpu.TextureFormat.bgra8unorm  # todo: get from canvas context
+            return self.render_target._config["format"]
         else:  # BufferChannel
             return self.render_target.target_texture.format
 
@@ -465,7 +452,7 @@ class ShaderPass:
         render_pass = command_encoder.begin_render_pass(
             color_attachments=[
                 {
-                    "view": target_texture.create_view(),
+                    "view": target_texture.create_view(usage=wgpu.TextureUsage.RENDER_ATTACHMENT),
                     "resolve_target": None,
                     "clear_value": (0, 0, 0, 1),
                     "load_op": wgpu.LoadOp.clear,
@@ -518,7 +505,7 @@ class ShaderPass:
         if self._channel_3:
             self._uniform_data["channel_resolution"][3][:3] = self._channel_3.texture.size
             self._uniform_data["channel_time"][3] = self._channel_3.time
-    
+
     
     def play(self):
         channels = [self.channel_0, self.channel_1, self.channel_2, self.channel_3]

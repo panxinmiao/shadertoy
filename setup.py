@@ -15,6 +15,12 @@ runtime_deps = [
     "tqdm",
 ]
 
+extras = {
+    "video": [
+        "moviepy",
+    ],
+}
+
 
 setup(
     name=NAME,
@@ -32,6 +38,7 @@ setup(
     ),
     python_requires=">=3.9.0",
     install_requires=runtime_deps,
+    extras_require=extras,
     script_name="shadertoy",
     entry_points={
         "console_scripts": [

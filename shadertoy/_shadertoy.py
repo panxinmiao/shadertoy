@@ -1,7 +1,9 @@
 import time
 import numpy as np
 import wgpu
+from importlib.util import find_spec
 from wgpu.gui.auto import WgpuCanvas, run
+from wgpu.gui.offscreen import WgpuCanvas as OffscreenCanvas
 from ._shared import get_device, get_uniform_input_layout
 from ._channel import BufferChannel
 from ._pass import ShaderPass
@@ -17,7 +19,6 @@ class Shadertoy:
         buffer_c_code=None,
         buffer_d_code=None,
         sound_code=None,
-        resolution=(800, 450),
         title="Shadertoy",
     ) -> None:
 
@@ -34,16 +35,10 @@ class Shadertoy:
                 ("__padding", "uint32"),  # Padding to 64
             ],
         )
-        self._uniform_data["resolution"] = resolution + (1,)
 
-        self._canvas = WgpuCanvas(title=title, size=resolution, max_fps=60)
+        self._title = title
         self._device = get_device()
-        self._canvas_context = self._canvas.get_context()
 
-        # We use "bgra8unorm" not "bgra8unorm-srgb" here because we want to let the shader fully control the color-space.
-        self._canvas_context.configure(
-            device=self._device, format=wgpu.TextureFormat.bgra8unorm
-        )
         self._uniform_buffer = self._device.create_buffer(
             size=self._uniform_data.nbytes,
             usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
@@ -71,34 +66,32 @@ class Shadertoy:
         common_code = common_code or ""
 
         if buffer_a_code:
-            buffer_a = BufferChannel(resolution)
             self._buffer_a_pass = ShaderPass(
-                common_code + buffer_a_code, render_target=buffer_a
+                f"{common_code}\n{buffer_a_code}", render_target=BufferChannel()
             )
         if buffer_b_code:
-            buffer_b = BufferChannel(resolution)
             self._buffer_b_pass = ShaderPass(
-                common_code + buffer_b_code, render_target=buffer_b
+                f"{common_code}\n{buffer_b_code}", render_target=BufferChannel()
             )
         if buffer_c_code:
-            buffer_c = BufferChannel(resolution)
             self._buffer_c_pass = ShaderPass(
-                common_code + buffer_c_code, render_target=buffer_c
+                f"{common_code}\n{buffer_c_code}", render_target=BufferChannel()
             )
         if buffer_d_code:
-            buffer_d = BufferChannel(resolution)
             self._buffer_d_pass = ShaderPass(
-                common_code + buffer_d_code, render_target=buffer_d
+                f"{common_code}\n{buffer_d_code}", render_target=BufferChannel()
             )
 
         if sound_code:
-            self._sound_pass = SoundPass(common_code + sound_code)
+            self._sound_pass = SoundPass(f"{common_code}\n{sound_code}")
 
         self._main_pass = ShaderPass(
-            common_code + main_code, render_target=self._canvas, flip=True
+            f"{common_code}\n{main_code}", flip=True
         )
 
-        self._bind_events()
+        # default resolution
+        self._uniform_data["resolution"] = (800, 450, 1)
+
 
     @property
     def resolution(self):
@@ -127,43 +120,42 @@ class Shadertoy:
     @property
     def sound_pass(self):
         return self._sound_pass
+    
+    @property
+    def render_target(self):
+        return self.main_pass.render_target
+    
+    @render_target.setter
+    def render_target(self, value):
+        self.main_pass.render_target = value
 
     def _draw_frame(self):
-        # Update uniform buffer
-        self._update()
-
         command_encoder = self._device.create_command_encoder()
 
-        passes = [
+        buffer_passes = [
             self._buffer_a_pass,
             self._buffer_b_pass,
             self._buffer_c_pass,
             self._buffer_d_pass,
-            self._main_pass,
         ]
 
-        for pass_ in passes:
+        for pass_ in buffer_passes:
+            if pass_ is not None:
+                pass_.render_target.ensure_texture(self.resolution)
+
+        for pass_ in [*buffer_passes, self._main_pass]:
             if pass_ is not None:
                 pass_.draw_frame(command_encoder, self._uniform_buffer_bind_group)
 
         self._device.queue.submit([command_encoder.finish()])
-        self._canvas.request_draw()
+
 
     def _bind_events(self):
         def on_resize(event):
             w, h = int(event["width"]), int(event["height"])
             if w == 0 or h == 0:
                 return
-            self._uniform_data["resolution"] = (w, h, 1)
-            passes = [
-                self._buffer_a_pass,
-                self._buffer_b_pass,
-                self._buffer_c_pass,
-                self._buffer_d_pass,
-            ]
-            for pass_ in passes:
-                if pass_ is not None:
-                    pass_.render_target.resize((w, h))
+            self.resolution = w, h
 
         def on_mouse_move(event):
             if event["button"] == 1 or 1 in event["buttons"]:
@@ -184,11 +176,14 @@ class Shadertoy:
         self._canvas.add_event_handler(on_mouse_down, "pointer_down")
         self._canvas.add_event_handler(on_mouse_up, "pointer_up")
 
-    def _update(self):
-        now = time.perf_counter()
+    def _update(self, t=None):
+        if t is None:
+            now = time.perf_counter()
+        else:
+            now = t
+
         if not hasattr(self, "_last_time"):
             self._last_time = now
-
         time_delta = now - self._last_time
         self._uniform_data["time_delta"] = time_delta
         self._last_time = now
@@ -235,7 +230,137 @@ class Shadertoy:
             self._uniform_buffer, 0, self._uniform_data, 0, self._uniform_data.nbytes
         )
 
-    def show(self):
+    def set_shader_state(
+        self, 
+        time: float = 0.0,
+        time_delta: float = 0.167,
+        frame: int = 0,
+        framerate: int = 60.0,
+        mouse_pos: tuple = None,
+        date: tuple = None,
+    ):
+        self._uniform_data["time"] = time
+        self._uniform_data["time_delta"] = time_delta
+        self._uniform_data["frame"] = frame
+        self._uniform_data["frame_rate"] = framerate
+        if mouse_pos is not None:
+            self._uniform_data["mouse"] = mouse_pos
+        if date is not None:
+            self._uniform_data["date"] = date
+
+        self._device.queue.write_buffer(
+            self._uniform_buffer, 0, self._uniform_data, 0, self._uniform_data.nbytes
+        )
+
+    def snapshot(self):
+        # if don't have a render target, it probably means we are running in headless mode
+        # so we create an offscreen canvas to render the frame
+        if self.render_target is None:
+            self._canvas = OffscreenCanvas(size = self.resolution)
+            self._canvas_context = self._canvas.get_context()
+            self._canvas_context.configure(
+                device = self._device, format = wgpu.TextureFormat.rgba8unorm, usage = wgpu.TextureUsage.COPY_SRC | wgpu.TextureUsage.RENDER_ATTACHMENT
+            )
+            self.render_target = self._canvas_context
+
+        self._draw_frame()
+        texture = self.main_pass.render_target.get_current_texture()
+        size = texture.size
+        bytes_per_pixel = 4
+
+        data = self._device.queue.read_texture(
+            {
+                "texture": texture,
+                "mip_level": 0,
+                "origin": (0, 0, 0),
+            },
+            {
+                "offset": 0,
+                "bytes_per_row": bytes_per_pixel * size[0],
+                "rows_per_image": size[1],
+            },
+            size,
+        )
+        return np.frombuffer(data, np.uint8).reshape(size[1], size[0], 4)
+    
+    def to_video(self, out, duration: int = 10, fps: int = 60, resolution = (1280, 720), **kwargs):
+        if not find_spec("moviepy"):
+            raise ImportError("Please install moviepy to use this feature.: pip install moviepy")
+ 
+        from ._audio import AudioChannel
+        from moviepy import VideoClip, AudioArrayClip, CompositeAudioClip
+
+
+        if resolution is not None:
+            self._uniform_data["resolution"] = resolution + (1,)
+
+        passes = [
+            self._sound_pass,
+            self._buffer_a_pass,
+            self._buffer_b_pass,
+            self._buffer_c_pass,
+            self._buffer_d_pass,
+            self._main_pass,
+        ]
+
+        playable_channels = []
+
+        for pass_ in passes:
+            if pass_ is not None:
+                channels = [pass_.channel_0, pass_.channel_1, pass_.channel_2, pass_.channel_3]
+                for channel in channels:
+                    if channel and hasattr(channel, "play"):
+                        playable_channels.append(channel)
+
+
+        def frame_function(t):
+            if playable_channels:
+                for channel in playable_channels:
+                    channel._set_play_time(t)
+
+            # self.set_shader_state(time=t)
+            self._update(t)
+            frame = self.snapshot()
+            return frame[:, :, :3]
+        
+
+        video_clip = VideoClip(frame_function, duration=duration)
+
+        audio_clips = []
+
+        for channel in playable_channels:
+            if isinstance(channel, AudioChannel):
+                audio_data, audio_fps = channel._audio._load_data(force_cacahe_stream=True)
+                audio_clip = AudioArrayClip(audio_data, fps=audio_fps)
+                audio_clip.duration = duration
+                audio_clips.append(audio_clip)
+
+
+        if self.sound_pass:
+            audio_data = self.sound_pass.get_audio_data()
+
+            audio_clip = AudioArrayClip(audio_data, fps=44100)
+            audio_clip.duration = duration
+            audio_clips.append(audio_clip)
+        
+        if audio_clips:
+            audio_clip = CompositeAudioClip(audio_clips)
+            audio_clip.duration = duration
+            video_clip.audio = audio_clip
+
+        video_clip.write_videofile(out, fps=fps, codec='libx264', **kwargs)
+
+    def show(self, resolution=(800, 450)):
+        self._uniform_data["resolution"] = resolution + (1,)
+        self._canvas = WgpuCanvas(title=self._title, size=resolution, max_fps=60)
+        self._canvas_context = self._canvas.get_context()
+        # We use "bgra8unorm" not "bgra8unorm-srgb" here because we want to let the shader fully control the color-space.
+        self._canvas_context.configure(
+            device=self._device, format=wgpu.TextureFormat.rgba8unorm, usage=wgpu.TextureUsage.COPY_SRC | wgpu.TextureUsage.RENDER_ATTACHMENT
+        )
+        self.render_target = self._canvas_context
+        self._bind_events()
+
         passes = [
             self._sound_pass,
             self._buffer_a_pass,
@@ -249,5 +374,10 @@ class Shadertoy:
             if pass_ is not None:
                 pass_.play()
 
-        self._canvas.request_draw(self._draw_frame)
+        def loop():
+            self._update()
+            self._draw_frame()
+            self._canvas.request_draw()
+
+        self._canvas.request_draw(loop)
         run()

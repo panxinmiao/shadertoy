@@ -6,10 +6,10 @@ from ._mipmapsutil import get_mip_level_count, generate_mipmaps
 class ShadertoyChannel:
     def __init__(self, resource, filter="linear", wrap="repeat") -> None:
         self._device = get_device()
-        if isinstance(resource, wgpu.GPUTexture):
-            self._texture = resource
-        elif isinstance(resource, wgpu.GPUTextureView):
+        if isinstance(resource, wgpu.GPUTextureView):
             self._texture = resource.texture
+        else:
+            self._texture = resource
 
         self._filter = filter
         self._wrap = wrap
@@ -96,25 +96,18 @@ class ShadertoyChannel:
 
 
 class BufferChannel(ShadertoyChannel):
-    def __init__(self, size, filter="linear", wrap="clamp") -> None:
+    def __init__(self, filter="linear", wrap="clamp") -> None:
+        super().__init__(None, filter, wrap)
         self._device = get_device()
-        buffer_texture = self._device.create_texture(
-            size=(size[0], size[1], 1),
-            format=wgpu.TextureFormat.rgba32float,
-            usage=wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST,
-        )
-
-        self._target_texture = self._device.create_texture(
-            size=(size[0], size[1], 1),
-            format=wgpu.TextureFormat.rgba32float,
-            usage=wgpu.TextureUsage.COPY_SRC | wgpu.TextureUsage.RENDER_ATTACHMENT,
-        )
-
-        super().__init__(buffer_texture, filter, wrap)
+        self._target_texture = None
 
     @property
     def target_texture(self):
         return self._target_texture
+    
+    def ensure_texture(self, size):
+        if self.target_texture is None or self.target_texture.size[:2] != size:
+            self.resize(size)
 
     def resize(self, size):
         self._texture = self._device.create_texture(

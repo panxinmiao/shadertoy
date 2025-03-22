@@ -41,36 +41,29 @@ shader = Shadertoy(main_code)
 shader.show()
 ```
 
-### Using Channel Input:
-```python
-from shadertoy import Shadertoy, DataChannel
-import imageio.v3 as iio
+### Channel Input:
+You can set the input channel for each pass. 
 
-# Load an image as a numpy array
-noise_img = iio.imread("noise.png")
+At present, the following channel types are supported:
+- TextureChannel: Load an image as a 2d texture.
+- AudioChannel: Load an audio file as a sound texture.
+- DataChannel: The data is a numpy array
+- BufferChannel: use for multipass
+- VideoChannel: Load a video file as a video texture. (Requires the `moviepy` package, `pip install moviepy`)
 
-shader = Shadertoy(main_code)
-shader.main_pass.channel_0 = DataChannel(noise_img)
-shader.show()
-```
-or just use file path:
+Todo: Add CubeTextureChannel, 3DTextureChannel, and keyboardChannel, WebcamChannel.
+
 ```python
-from shadertoy import Shadertoy, TextureChannel
+from shadertoy import Shadertoy, TextureChannel, DataChannel, AudioChannel
 
 shader = Shadertoy(main_code)
 shader.main_pass.channel_0 = TextureChannel("noise.png")
-shader.show()
-```
+shader.main_pass.channel_1 = AudioChannel("audio.mp3")
+shader.main_pass.channel_2 = DataChannel(...)
 
-### Using AudioChannel:
-Note: This requires the `sounddevice` and `soundfile` packages.
-```python
-from shadertoy import Shadertoy
-from shadertoy.audio import AudioChannel
-
-shader = Shadertoy(main_code)
-audio_channel = AudioChannel("audio.mp3")
-shader.main_pass.channel_0 = audio_channel
+# to use a VideoChannel, you need to install the moviepy package first
+from shadertoy import VideoChannel
+shader.main_pass.channel_3 = VideoChannel("video.mp4")
 shader.show()
 ```
 
@@ -93,9 +86,8 @@ shader = Shadertoy(
 noise_img = iio.imread("noise.png")
 
 # Configure channels for each pass
-shader.buffer_a_pass.channel_0 = DataChannel(noise_img) # pass_a.channel_0 is a texture
+shader.buffer_a_pass.channel_0 = DataChannel(noise_img)  # pass_a.channel_0 is a texture
 shader.buffer_a_pass.channel_1 = shader.buffer_a_pass  # pass_a.channel_1 is itself
-
 shader.buffer_b_pass.channel_0 = shader.buffer_a_pass  # pass_b.channel_0 is another pass
 
 shader.main_pass.channel_0 = shader.buffer_b_pass
@@ -104,6 +96,38 @@ shader.show()
 ```
 
 For more examples, please refer to the [examples](https://github.com/panxinmiao/shadertoy/tree/main/examples) directory.
+
+### Capture Frame or Record Video:
+You can use the `snapshot()` method to capture the current frame as a numpy array.
+
+```python
+img = shader.snapshot() 
+# img is a numpy array with shape (height, width, 4)
+imageio.imwrite("output.png", img)
+```
+
+If you want to capture a frame at a specific timestamp (or other shader state), you can set the shader state before calling the `snapshot()` method.
+
+```python
+shader.set_shader_state(
+    time = 10.0,
+    time_delta = ...,
+    ...,
+)
+
+img = shader.snapshot()
+```
+
+To record a video, you need to install the `MoviePy` package first.:
+```bash
+pip install moviepy
+```
+
+Then you can use the `to_video` method to record a video.
+
+```python
+shader.to_video("pirates.mp4", duration=50, fps=60, resolution=(1280, 720))
+```
 
 
 ### CLI Usage:
@@ -116,6 +140,11 @@ python -m shadertoy XtlSD7 --resolution 800 450
 Or, if you have installed as a package, you can run it directly:
 ```bash
 shadertoy XtlSD7
+```
+
+You can also record a video use "--output" option (requires the `MoviePy` package):
+```bash
+shadertoy XtlSD7 --output video.mp4 --duration 50 --fps 60 --resolution 1280 720
 ```
 
 #### Note:
