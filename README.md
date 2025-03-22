@@ -48,10 +48,12 @@ At present, the following channel types are supported:
 - TextureChannel: Load an image as a 2d texture.
 - AudioChannel: Load an audio file as a sound texture.
 - DataChannel: The data is a numpy array
-- BufferChannel: use for multipass
+- BufferChannel: Use for multipass
+- CubeTextureChannel: Cube texture.
+- VolumeTextureChannel: 3D texture.
 - VideoChannel: Load a video file as a video texture. (Requires the `moviepy` package, `pip install moviepy`)
 
-Todo: Add CubeTextureChannel, 3DTextureChannel, and keyboardChannel, WebcamChannel.
+Todo: Add keyboardChannel, WebcamChannel.
 
 ```python
 from shadertoy import Shadertoy, TextureChannel, DataChannel, AudioChannel
@@ -126,7 +128,7 @@ pip install moviepy
 Then you can use the `to_video` method to record a video.
 
 ```python
-shader.to_video("pirates.mp4", duration=50, fps=60, resolution=(1280, 720))
+shader.to_video("output.mp4", duration=50, fps=60, resolution=(1280, 720))
 ```
 
 

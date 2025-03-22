@@ -39,24 +39,9 @@ vec4 iDate;
 float iChannelTime[4];
 vec3 iChannelResolution[4];
 
-// Shadertoy compatibility, see we can use the same code copied from shadertoy website
+"""
 
-#define iChannel0 sampler2D(i_channel0, sampler0)
-#define iChannel1 sampler2D(i_channel1, sampler1)
-#define iChannel2 sampler2D(i_channel2, sampler2)
-#define iChannel3 sampler2D(i_channel3, sampler3)
-
-layout(set = 0, binding = 0) uniform texture2D i_channel0;
-layout(set = 0, binding = 1) uniform sampler sampler0;
-
-layout(set = 1, binding = 0) uniform texture2D i_channel1;
-layout(set = 1, binding = 1) uniform sampler sampler1;
-
-layout(set = 2, binding = 0) uniform texture2D i_channel2;
-layout(set = 2, binding = 1) uniform sampler sampler2;
-
-layout(set = 3, binding = 0) uniform texture2D i_channel3;
-layout(set = 3, binding = 1) uniform sampler sampler3;
+fragment_code_glsl = """
 
 uniform struct ShadertoyInput {
     vec4 _mouse;
@@ -79,9 +64,6 @@ uniform struct PassInput {
 layout(set = 4, binding = 0) uniform ShadertoyInput input;
 layout(set = 5, binding = 0) uniform PassInput pass_input;
 
-
-"""
-fragment_code_glsl = """
 layout(location = 0) in vec2 v_uv;
 out vec4 FragColor;
 
@@ -152,6 +134,7 @@ var<private> i_channel_resolution: array<vec3<f32>, 4>;
 
 """
 
+
 fragment_code_wgsl = """
 
 struct ShadertoyInput {
@@ -177,26 +160,6 @@ struct Varyings {
     @location(0) uv : vec2<f32>,
 };
 
-
-@group(0) @binding(0)
-var i_channel0: texture_2d<f32>;
-@group(0) @binding(1)
-var sampler0: sampler;
-
-@group(1) @binding(0)
-var i_channel1: texture_2d<f32>;
-@group(1) @binding(1)
-var sampler1: sampler;
-
-@group(2) @binding(0)
-var i_channel2: texture_2d<f32>;
-@group(2) @binding(1)
-var sampler2: sampler;
-
-@group(3) @binding(0)
-var i_channel3: texture_2d<f32>;
-@group(3) @binding(1)
-var sampler3: sampler;
 
 @group(4) @binding(0)
 var<uniform> input: ShadertoyInput;
@@ -290,13 +253,14 @@ class ShaderPass:
     @property
     def shader_type(self):
         """The shader type, automatically detected from the shader code, can be "wgsl" or "glsl"."""
-        if "fn shader_main" in self.shader_code:
-            return "wgsl"
-        elif (
+        if (
             "void shader_main" in self.shader_code
             or "void mainImage" in self.shader_code
         ):
             return "glsl"
+
+        elif "fn shader_main" in self.shader_code:
+            return "wgsl"
         else:
             raise ValueError("Invalid shader code.")
 
@@ -344,19 +308,61 @@ class ShaderPass:
             value = value.render_target
         self._channel_3 = value
 
+
+    def _make_channel_binding_codes(self):
+        binding_codes = []
+        for i, channel in enumerate(
+            [self.channel_0, self.channel_1, self.channel_2, self.channel_3]
+        ):
+            if channel is None:
+                continue
+
+            if self.shader_type == "glsl":
+                view_dim = {
+                    "2d": "2D",
+                    "cube": "Cube",
+                    "3d": "3D",
+                    # "2d_array": "2DArray",
+                }[channel._view_dimension]
+
+                binding_code = f"""
+                layout(set = {i}, binding = 0) uniform texture{view_dim} i_channel{i};
+                layout(set = {i}, binding = 1) uniform sampler sampler{i};
+
+                #define iChannel{i} sampler{view_dim}(i_channel{i}, sampler{i})
+                """
+                binding_codes.append(binding_code)
+
+            elif self.shader_type == "wgsl":
+
+                binding_code = f"""
+                @group({i}) @binding(0)
+                var i_channel{i}: texture_{channel._view_dimension}<f32>;
+                @group({i}) @binding(1)
+                var sampler{i}: sampler;
+
+                """
+                binding_codes.append(binding_code)
+
+        return "\n".join(binding_codes)
+    
+
     def get_render_pipeline(self):
         device = get_device()
         if self._render_pipeline is None:
             shader_type = self.shader_type
+
+            channel_binding_codes = self._make_channel_binding_codes()
+
             if shader_type == "glsl":
                 vertex_shader_code = vertex_code_glsl
                 frag_shader_code = (
-                    builtin_variables_glsl + self.shader_code + fragment_code_glsl
+                    builtin_variables_glsl + channel_binding_codes + self.shader_code + fragment_code_glsl
                 )
             elif shader_type == "wgsl":
                 vertex_shader_code = vertex_code_wgsl
                 frag_shader_code = (
-                    builtin_variables_wgsl + self.shader_code + fragment_code_wgsl
+                    builtin_variables_wgsl + channel_binding_codes + self.shader_code + fragment_code_wgsl
                 )
 
             if not self._flip:

@@ -155,7 +155,7 @@ class Shadertoy:
             w, h = int(event["width"]), int(event["height"])
             if w == 0 or h == 0:
                 return
-            self.resolution = w, h
+            self._uniform_data["resolution"] = (w, h, 1)
 
         def on_mouse_move(event):
             if event["button"] == 1 or 1 in event["buttons"]:

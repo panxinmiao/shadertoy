@@ -4,7 +4,7 @@ import sys
 import requests
 import warnings
 
-from ._channel import TextureChannel, BufferChannel
+from ._channel import TextureChannel, BufferChannel, CubeTextureChannel, VolumeTextureChannel
 from ._audio import AudioChannel
 from ._shadertoy import Shadertoy
 
@@ -92,14 +92,16 @@ def _solve_input_channels(inputs, size, channel_cache={}, use_cache=True):
         if _id in channel_cache:
             channel = channel_cache[_id]
         else:
+            channel = None
             if ctype == "buffer":
                 channel = BufferChannel(size=size, filter=sampler["filter"], wrap=sampler["wrap"])
             else:
                 src = input["src"]
-                resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
                 if ctype == "texture":
+                    resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
                     channel = TextureChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"], vflip=sampler["vflip"])
                 elif ctype == "music":
+                    resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
                     channel = AudioChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
                 elif ctype == "musicstream":
                     warnings.warn("soundcloud is not supported, use a shadertoy media instead.")
@@ -108,9 +110,19 @@ def _solve_input_channels(inputs, size, channel_cache={}, use_cache=True):
                     channel = AudioChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
                 elif ctype == "video":
                     from ._video import VideoChannel
+                    resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
                     channel = VideoChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"], vflip=sampler["vflip"])
+                elif ctype == "cubemap":
+                    uris = [_get_media_resource_uri(src, use_cache=use_cache)]
+                    for i in range(1, 6):
+                        ext = src.split(".")[-1]
+                        uri = src.replace(f".{ext}", f"_{i}.{ext}")
+                        uris.append(_get_media_resource_uri(uri, use_cache=use_cache))
+                    channel = CubeTextureChannel(uris, filter=sampler["filter"], wrap=sampler["wrap"], vflip=sampler["vflip"])
+                elif ctype == "volume":
+                    resource_uri = _get_media_resource_uri(src, use_cache=use_cache)
+                    channel = VolumeTextureChannel(resource_uri, filter=sampler["filter"], wrap=sampler["wrap"])
                 else:
-                    channel = None
                     warnings.warn(
                         f"Unsupported channel type: {ctype}, id: {_id}"
                     )

@@ -1,7 +1,9 @@
 import wgpu
+import numpy as np
 from ._channel import ShadertoyChannel
 from ._shared import get_device
 import time
+
 
 class VideoChannel(ShadertoyChannel):
     def __init__(self, uri, filter="linear", wrap="clamp", vflip=False) -> None:
@@ -38,9 +40,6 @@ class VideoChannel(ShadertoyChannel):
             now = time.perf_counter()
             self._time += now - self._last_play_time
             self._last_play_time = now
-
-        import numpy as np
-        self._clip.has_mask = True
 
         data = self._clip.reader.get_frame(self.time)
 

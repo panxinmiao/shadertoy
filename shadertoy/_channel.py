@@ -1,23 +1,21 @@
 import wgpu
 import numpy as np
+import imageio.v3 as iio
+import os
 from ._shared import get_device, get_channel_layout, get_sampler
 from ._mipmapsutil import get_mip_level_count, generate_mipmaps
 
 class ShadertoyChannel:
-    def __init__(self, resource, filter="linear", wrap="repeat") -> None:
+    def __init__(self, resource=None, filter="linear", wrap="repeat", view_dimension=wgpu.TextureViewDimension.d2) -> None:
         self._device = get_device()
-        if isinstance(resource, wgpu.GPUTextureView):
-            self._texture = resource.texture
-        else:
-            self._texture = resource
-
+        
         self._filter = filter
         self._wrap = wrap
         self._sampler = None
-
         self._bind_group = None
-
         self._time = 0.0
+        self._view_dimension = view_dimension
+        self.texture = resource
 
     def update(self):
         pass
@@ -52,6 +50,14 @@ class ShadertoyChannel:
     def texture(self):
         return self._texture
 
+    @texture.setter
+    def texture(self, value):
+        if isinstance(value, wgpu.GPUTextureView):
+            self._texture = value.texture
+        else:
+            self._texture = value
+        self._bind_group = None
+
     @property
     def sampler(self):
         if self._sampler is None:
@@ -65,18 +71,18 @@ class ShadertoyChannel:
 
     @property
     def bind_group_layout(self):
-        view_dimension = (
-            wgpu.TextureViewDimension.d2
-        )  # todo: get from texture, we should support cube-texture
-        return get_channel_layout(view_dimension)
+        return get_channel_layout(self._view_dimension)
     
     @property
     def bind_group(self):
         if self._bind_group is None:
             if self.filter == "mipmap":
-                texture_view = self._texture.create_view()
+                texture_view = self._texture.create_view(
+                    dimension=self._view_dimension,
+                )
             else:
                 texture_view = self._texture.create_view(
+                    dimension=self._view_dimension,
                     base_mip_level=0,
                     mip_level_count=1
                 )
@@ -97,7 +103,7 @@ class ShadertoyChannel:
 
 class BufferChannel(ShadertoyChannel):
     def __init__(self, filter="linear", wrap="clamp") -> None:
-        super().__init__(None, filter, wrap)
+        super().__init__(filter=filter, wrap=wrap)
         self._device = get_device()
         self._target_texture = None
 
@@ -126,7 +132,8 @@ class BufferChannel(ShadertoyChannel):
 
 
 class DataChannel(ShadertoyChannel):
-    def __init__(self, data, filter="linear", wrap="repeat", vflip=False) -> None:
+    def __init__(self, data, filter="linear", wrap="repeat", vflip=False, view_dimension=wgpu.TextureViewDimension.d2) -> None:
+        super().__init__(filter=filter, wrap=wrap, view_dimension=view_dimension)
         self._device = get_device()
 
         self._data = data
@@ -137,9 +144,7 @@ class DataChannel(ShadertoyChannel):
             need_mipmaps = False
 
         self._vflip = vflip
-
-        texture = self._create_texture_from_data(data, need_mipmaps, vflip)
-        super().__init__(texture, filter, wrap)
+        self.texture = self._create_texture_from_data(data, need_mipmaps, vflip)
 
     @property
     def filter(self):
@@ -178,7 +183,7 @@ class DataChannel(ShadertoyChannel):
         if len(shape) == 2: # HW
             shape = shape + (1,)
 
-        if len(shape) == 3: # we assume it's HWC (maybe NHW?）
+        if len(shape) == 3: # we assume it's HWC (maybe NHW?)
             shape = (1,) + shape
 
         data = data.reshape(shape)
@@ -208,6 +213,16 @@ class DataChannel(ShadertoyChannel):
         else:
             raise ValueError("Invalid image data shape.")
         
+        if self._view_dimension == wgpu.TextureViewDimension.d1:
+            dimension = "1"
+        elif self._view_dimension == wgpu.TextureViewDimension.d3:
+            dimension = "3"
+        else:
+            dimension = "2"
+
+
+        need_mipmaps = need_mipmaps and dimension == "2"
+        
         if need_mipmaps:
             mipmap_level_count = get_mip_level_count(size)
             usage = wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST | wgpu.TextureUsage.RENDER_ATTACHMENT
@@ -215,10 +230,12 @@ class DataChannel(ShadertoyChannel):
             mipmap_level_count = 1
             usage = wgpu.TextureUsage.TEXTURE_BINDING | wgpu.TextureUsage.COPY_DST
 
+
         texture = self._device.create_texture(
             size=size,
             format=format,
             usage=usage,
+            dimension=f"{dimension}d",
             mip_level_count=mipmap_level_count,
         )
 
@@ -238,8 +255,36 @@ class DataChannel(ShadertoyChannel):
 
 class TextureChannel(DataChannel):
     def __init__(self, uri, filter="linear", wrap="repeat", vflip=False) -> None:
-        import imageio.v3 as iio
-        img = iio.imread(uri)
-        super().__init__(img, filter, wrap, vflip)
+        img_data = iio.imread(uri)
+        super().__init__(img_data, filter, wrap, vflip)
+
+class CubeTextureChannel(DataChannel):
+    def __init__(self, uris, filter="linear", wrap="repeat", vflip=False) -> None:
+        images = []
+        for uri in uris:
+            img = iio.imread(uri)
+            images.append(img)
+
+        cube_data = np.stack(images, axis=0)
+
+        super().__init__(cube_data, filter, wrap, vflip=vflip, view_dimension = wgpu.TextureViewDimension.cube)
+
+
+class VolumeTextureChannel(DataChannel):
+    def __init__(self, uri, filter="linear", wrap="repeat") -> None:
+
+        if isinstance(uri, np.ndarray):
+            data = uri
+            assert len(data.shape) == 4, "Volume data must have 4 dimensions (DHWC)"
+        elif os.path.isfile(uri):
+            data = np.fromfile(uri, dtype=np.uint8)
+
+            header = np.frombuffer(data[:20], dtype=np.int32)
+
+            #  header [5130562, 32, 32, 32, 4]
+            shape = header[1:]
+            data = data[20:].reshape(shape)
+        
+        super().__init__(data, filter, wrap, view_dimension = wgpu.TextureViewDimension.d3)
 
 DEFAULT_CHANNEL = DataChannel(np.zeros((1,1), dtype=np.uint8))
