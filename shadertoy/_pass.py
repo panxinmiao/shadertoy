@@ -39,6 +39,8 @@ vec4 iDate;
 float iChannelTime[4];
 vec3 iChannelResolution[4];
 
+const float iSampleRate = 44100.0;
+
 """
 
 fragment_code_glsl = """
@@ -132,6 +134,7 @@ var<private> i_frame_rate: f32;
 var<private> i_channel_time: array<f32, 4>;
 var<private> i_channel_resolution: array<vec3<f32>, 4>;
 
+const i_sample_rate: f32 = 44100.0;
 """
 
 
@@ -225,13 +228,13 @@ class ShaderPass:
             ],
         )
 
-        device = get_device()
-        self._uniform_buffer = device.create_buffer(
+        self._device = get_device()
+        self._uniform_buffer = self._device.create_buffer(
             size=self._uniform_data.nbytes,
             usage=wgpu.BufferUsage.UNIFORM | wgpu.BufferUsage.COPY_DST,
         )
 
-        self._uniform_buffer_bind_group = device.create_bind_group(
+        self._uniform_buffer_bind_group = self._device.create_bind_group(
             layout=get_uniform_input_layout(),
             entries=[
                 {
@@ -511,6 +514,10 @@ class ShaderPass:
         if self._channel_3:
             self._uniform_data["channel_resolution"][3][:3] = self._channel_3.texture.size
             self._uniform_data["channel_time"][3] = self._channel_3.time
+
+        self._device.queue.write_buffer(
+            self._uniform_buffer, 0, self._uniform_data, 0, self._uniform_data.nbytes
+        )
 
     
     def play(self):

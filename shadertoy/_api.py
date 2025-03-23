@@ -161,6 +161,7 @@ def load_from_json(shader_data, **kwargs) -> dict:
         elif pass_type in ("image", "sound", "common"):
             r_pass["_name"] = pass_type
         else:
+            r_pass["_name"] = pass_type
             warnings.warn(f"Unsupported pass type: {pass_type}")
         
         pass_name = r_pass["_name"]

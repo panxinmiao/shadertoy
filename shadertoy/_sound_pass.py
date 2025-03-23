@@ -4,6 +4,7 @@ import numpy as np
 from ._channel import ShadertoyChannel, DEFAULT_CHANNEL
 from ._pass import ShaderPass
 from ._shared import get_device, get_audio_buffer_layout
+from ._audio import _AudioPlayer
 
 
 builtin_variables_wgsl = """
@@ -274,7 +275,6 @@ class SoundPass:
         return self._audio_data
     
     def play(self):
-        from ._audio import _AudioPlayer
         audio_data = self.get_audio_data()
         audio_player = _AudioPlayer(audio_data)
         audio_player.play()

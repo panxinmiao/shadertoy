@@ -262,7 +262,7 @@ class CubeTextureChannel(DataChannel):
     def __init__(self, uris, filter="linear", wrap="repeat", vflip=False) -> None:
         images = []
         for uri in uris:
-            img = iio.imread(uri)
+            img = iio.imread(uri, pilmode="RGBA")
             images.append(img)
 
         cube_data = np.stack(images, axis=0)
